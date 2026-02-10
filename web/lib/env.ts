@@ -1,0 +1,19 @@
+import path from "node:path";
+import { loadEnvConfig } from "@next/env";
+
+if (typeof window === "undefined") {
+  loadEnvConfig(process.cwd());
+  if (!process.env.TURSO_DATABASE_URL) {
+    loadEnvConfig(path.resolve(process.cwd(), ".."));
+  }
+}
+
+export const env = {
+  tursoUrl: process.env.TURSO_DATABASE_URL ?? "",
+  tursoAuthToken: process.env.TURSO_AUTH_TOKEN ?? "",
+  authSecret: process.env.AUTH_SECRET ?? "dev-secret-change-me"
+};
+
+if (!env.tursoUrl) {
+  console.warn("TURSO_DATABASE_URL is not set. Checked web and repository root .env files.");
+}

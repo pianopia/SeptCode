@@ -1,0 +1,13 @@
+{
+  "name": "api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'API workspace placeholder. Implement your API server here.'",
+    "build": "echo 'API build placeholder'"
+  },
+  "dependencies": {
+    "@septima/db": "workspace:*"
+  }
+}

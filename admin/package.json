@@ -1,0 +1,13 @@
+{
+  "name": "admin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'Admin workspace placeholder. Implement admin app here.'",
+    "build": "echo 'Admin build placeholder'"
+  },
+  "dependencies": {
+    "@septima/db": "workspace:*"
+  }
+}

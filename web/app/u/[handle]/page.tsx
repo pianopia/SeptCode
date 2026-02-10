@@ -1,0 +1,60 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { toggleFollowAction } from "@/app/actions";
+import { CodeRenderer } from "@/components/CodeRenderer";
+import { getSessionUserId } from "@/lib/auth";
+import { getProfileByHandle } from "@/lib/queries";
+
+export default async function UserProfilePage({ params }: { params: { handle: string } }) {
+  const viewerId = await getSessionUserId();
+  const profile = await getProfileByHandle(params.handle, viewerId);
+  if (!profile) notFound();
+
+  return (
+    <div className="space-y-4">
+      <Link href="/" className="text-sm text-slate-300 hover:text-white">
+        ← タイムラインへ戻る
+      </Link>
+
+      <section className="rounded-xl border border-slate-700 bg-panel/80 p-4">
+        <h1 className="text-2xl font-bold">{profile.name}</h1>
+        <p className="text-sm text-slate-400">@{profile.handle}</p>
+        <p className="mt-2 text-sm text-slate-300">{profile.bio || "自己紹介はまだありません。"}</p>
+
+        <div className="mt-3 flex items-center gap-4 text-sm text-slate-300">
+          <span>{profile.followerCount} followers</span>
+          <span>{profile.followingCount} following</span>
+        </div>
+
+        {viewerId && viewerId !== profile.id && (
+          <form action={toggleFollowAction} className="mt-3">
+            <input type="hidden" name="targetUserId" value={profile.id} />
+            <input type="hidden" name="targetHandle" value={profile.handle} />
+            <button
+              type="submit"
+              className={`rounded-lg px-3 py-1 text-sm font-semibold ${
+                profile.isFollowing ? "border border-slate-600" : "bg-accent text-slate-950"
+              }`}
+            >
+              {profile.isFollowing ? "フォロー中" : "フォローする"}
+            </button>
+          </form>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">投稿</h2>
+        {profile.posts.map((post) => (
+          <article key={post.id} className="rounded-xl border border-slate-700 bg-panel/80 p-4">
+            <p className="mb-2 whitespace-pre-line text-sm text-slate-300">{`${post.premise1}\n${post.premise2}`}</p>
+            <CodeRenderer language={post.language} code={post.code} />
+            <Link href={`/posts/${post.publicId}`} className="mt-2 inline-block text-xs text-accent2">
+              詳細を見る
+            </Link>
+          </article>
+        ))}
+        {profile.posts.length === 0 && <p className="text-sm text-slate-400">投稿はまだありません。</p>}
+      </section>
+    </div>
+  );
+}

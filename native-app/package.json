@@ -1,0 +1,13 @@
+{
+  "name": "native-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo 'Native app workspace placeholder. Implement React Native app here.'",
+    "build": "echo 'Native app build placeholder'"
+  },
+  "dependencies": {
+    "@septima/db": "workspace:*"
+  }
+}
