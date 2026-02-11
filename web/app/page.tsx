@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { logoutAction } from "@/app/actions";
+import Image from "next/image";
 import { ComposeFab } from "@/components/ComposeFab";
 import { TimelineFeed } from "@/components/TimelineFeed";
 import { users } from "@septcode/db/schema";
@@ -32,12 +32,14 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
 
   const effectiveTab: "for-you" | "following" = tab === "following" && me[0] ? "following" : "for-you";
   const activePage = effectiveTab === "following" ? followingPage : forYouPage;
+  const myAvatarUrl = me[0] ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(me[0].handle)}` : "";
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <header className="sticky top-0 z-20 overflow-hidden rounded-xl border border-slate-700 bg-panel/95 backdrop-blur">
         <div className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
           <div className="flex min-w-0 items-end gap-2">
+            <Image src="/logo.png" alt="SeptCode logo" width={36} height={36} className="mb-0.5 h-9 w-9 shrink-0" />
             <h1 className="min-w-0 truncate font-display text-3xl leading-none tracking-[0.04em] text-transparent bg-gradient-to-r from-emerald-300 via-cyan-300 to-blue-400 bg-clip-text sm:text-4xl sm:tracking-[0.06em]">
               SeptCode
             </h1>
@@ -45,16 +47,13 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
           </div>
           {me[0] ? (
             <div className="flex items-center justify-between gap-2 text-xs sm:justify-end sm:text-sm">
-              <span className="max-w-[48vw] truncate text-slate-300 sm:max-w-none">@{me[0].handle}</span>
-              <form action={logoutAction}>
-                <input type="hidden" name="intent" value="logout" />
-                <button
-                  type="submit"
-                  className="rounded-full border border-slate-600 px-2.5 py-1 text-xs hover:border-slate-300 sm:px-3 sm:text-sm"
-                >
-                  ログアウト
-                </button>
-              </form>
+              <Link
+                href={`/u/${me[0].id}`}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-700 px-2 py-1 text-slate-200 hover:border-slate-500"
+              >
+                <img src={myAvatarUrl} alt={me[0].name} className="h-6 w-6 rounded-full border border-slate-700 bg-slate-800" />
+                <span className="max-w-[38vw] truncate sm:max-w-none">@{me[0].handle}</span>
+              </Link>
             </div>
           ) : (
             <div className="flex items-center justify-end gap-2 text-xs sm:text-sm">
@@ -118,6 +117,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
         initialHasMore={activePage.hasMore}
         tab={effectiveTab}
         canLike={Boolean(me[0])}
+        viewerUserId={me[0]?.id ?? null}
         emptyMessage={
           effectiveTab === "following"
             ? "まだフォロー中ユーザーの投稿がありません。ユーザープロフィールからフォローしてみてください。"

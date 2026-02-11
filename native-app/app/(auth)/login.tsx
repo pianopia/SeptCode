@@ -1,6 +1,6 @@
 import { Link, useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, SafeAreaView, StyleSheet, Text, TextInput, View, Image } from "react-native";
 import { useAuth } from "../../src/providers/AuthProvider";
 
 export default function LoginScreen() {
@@ -27,6 +27,7 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
+        <Image source={require("../../assets/icon.png")} style={styles.logo} />
         <Text style={styles.title}>SeptCode</Text>
         <Text style={styles.subtitle}>ログイン</Text>
         {!!error && <Text style={styles.error}>{error}</Text>}
@@ -45,7 +46,8 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#0a0f1d" },
-  container: { flex: 1, justifyContent: "center", gap: 12, padding: 20 },
+  container: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12, padding: 20 },
+  logo: { width: 100, height: 100, marginBottom: 20 },
   title: { color: "#7cf8d5", fontSize: 40, fontWeight: "800", textAlign: "center" },
   subtitle: { color: "#cfe", fontSize: 20, textAlign: "center", marginBottom: 8 },
   error: { color: "#ff9e9e", textAlign: "center" },

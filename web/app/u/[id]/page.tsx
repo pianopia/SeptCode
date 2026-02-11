@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { toggleFollowAction } from "@/app/actions";
+import { logoutAction, toggleFollowAction } from "@/app/actions";
 import { CodeRenderer } from "@/components/CodeRenderer";
 import { getSessionUserId } from "@/lib/auth";
 import { getProfileById } from "@/lib/queries";
@@ -46,6 +46,15 @@ export default async function UserProfilePage({ params }: { params: { id: string
               }`}
             >
               {profile.isFollowing ? "フォロー中" : "フォローする"}
+            </button>
+          </form>
+        )}
+
+        {viewerId === profile.id && (
+          <form action={logoutAction} className="mt-3">
+            <input type="hidden" name="intent" value="logout" />
+            <button type="submit" className="rounded-lg border border-slate-600 px-3 py-1 text-sm font-semibold hover:border-slate-300">
+              ログアウト
             </button>
           </form>
         )}

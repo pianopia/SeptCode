@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { apiRequest } from "../../src/lib/api";
 import { useAuth } from "../../src/providers/AuthProvider";
+import { CodeRenderer } from "../../src/components/CodeRenderer";
 
 type PostDetail = {
   id: number;
@@ -35,8 +36,7 @@ export default function PostDetailScreen() {
   const [editLanguage, setEditLanguage] = useState("");
   const [editVersion, setEditVersion] = useState("");
   const [editTags, setEditTags] = useState("");
-  const [editPremise1, setEditPremise1] = useState("");
-  const [editPremise2, setEditPremise2] = useState("");
+  const [editPremiseText, setEditPremiseText] = useState("");
 
   const isOwner = Boolean(post && user && post.authorId === user.id);
 
@@ -45,8 +45,7 @@ export default function PostDetailScreen() {
     setEditLanguage(next.language ?? "");
     setEditVersion(next.version ?? "");
     setEditTags(next.tags.join(", "));
-    setEditPremise1(next.premise1 ?? "");
-    setEditPremise2(next.premise2 ?? "");
+    setEditPremiseText([next.premise1 ?? "", next.premise2 ?? ""].filter((line) => line.trim().length > 0).join("\n"));
   }
 
   async function refreshPost() {
@@ -95,6 +94,10 @@ export default function PostDetailScreen() {
     setSaving(true);
     setError("");
     try {
+      const premiseLines = editPremiseText
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
       await apiRequest(`/posts/${params.id}`, {
         method: "PATCH",
         token,
@@ -103,8 +106,8 @@ export default function PostDetailScreen() {
           language: editLanguage,
           version: editVersion,
           tags: editTags,
-          premise1: editPremise1,
-          premise2: editPremise2
+          premise1: premiseLines[0] ?? "",
+          premise2: premiseLines[1] ?? ""
         }
       });
       await refreshPost();
@@ -147,9 +150,7 @@ export default function PostDetailScreen() {
             </Link>
             <Text style={styles.premise}>{post.premise1}</Text>
             <Text style={styles.premise}>{post.premise2}</Text>
-            <View style={styles.codeBox}>
-              <Text style={styles.code}>{post.code}</Text>
-            </View>
+            <CodeRenderer language={post.language} code={post.code} />
             <Text style={styles.ai}>AI: {post.aiSummary ?? "解説未生成"}</Text>
             <View style={styles.actionRow}>
               <Pressable onPress={() => void toggleLike()}>
@@ -164,8 +165,14 @@ export default function PostDetailScreen() {
                 <TextInput style={styles.input} value={editLanguage} onChangeText={setEditLanguage} placeholder="language (optional)" />
                 <TextInput style={styles.input} value={editVersion} onChangeText={setEditVersion} placeholder="version (optional)" />
                 <TextInput style={styles.input} value={editTags} onChangeText={setEditTags} placeholder="tags (comma separated)" />
-                <TextInput style={styles.input} value={editPremise1} onChangeText={setEditPremise1} placeholder="前提1 (optional)" />
-                <TextInput style={styles.input} value={editPremise2} onChangeText={setEditPremise2} placeholder="前提2 (optional)" />
+                <TextInput
+                  style={[styles.input, styles.premiseInput]}
+                  value={editPremiseText}
+                  onChangeText={setEditPremiseText}
+                  placeholder={"前提文を2行で入力\n例: 処理対象は10万件\n例: 1秒以内で返す必要あり"}
+                  placeholderTextColor="#778"
+                  multiline
+                />
                 <Pressable style={styles.button} onPress={() => void savePost()} disabled={saving || deleting}>
                   <Text style={styles.buttonText}>{saving ? "更新中..." : "更新する"}</Text>
                 </Pressable>
@@ -205,8 +212,7 @@ const styles = StyleSheet.create({
   authorName: { color: "#dce6ff", fontWeight: "700" },
   author: { color: "#87d9ff", fontSize: 12 },
   premise: { color: "#dde6ff" },
-  codeBox: { backgroundColor: "#0a0f1d", borderRadius: 10, borderWidth: 1, borderColor: "#1f2d5a", padding: 10 },
-  code: { color: "#bde9ff", fontFamily: "monospace", fontSize: 12 },
+
   ai: { color: "#cdb6ff", fontSize: 12 },
   actionRow: { flexDirection: "row", gap: 12 },
   action: { color: "#d2defd" },
@@ -214,6 +220,7 @@ const styles = StyleSheet.create({
   section: { color: "#f0f5ff", fontWeight: "700", marginTop: 6 },
   input: { backgroundColor: "#0e1730", borderWidth: 1, borderColor: "#1f2d5a", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, color: "#e8edff" },
   codeInput: { minHeight: 130, textAlignVertical: "top", fontFamily: "monospace" },
+  premiseInput: { minHeight: 90, textAlignVertical: "top" },
   button: { backgroundColor: "#22396e", borderRadius: 8, alignItems: "center", paddingVertical: 10 },
   buttonText: { color: "#dce6ff", fontWeight: "700" },
   dangerButton: { borderWidth: 1, borderColor: "#8a2f3f", borderRadius: 8, alignItems: "center", paddingVertical: 10 },

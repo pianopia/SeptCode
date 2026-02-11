@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { registerAction } from "@/app/actions";
 
 export default function RegisterPage({ searchParams }: { searchParams: { error?: string } }) {
@@ -10,7 +11,9 @@ export default function RegisterPage({ searchParams }: { searchParams: { error?:
   const error = searchParams.error ? errMap[searchParams.error] ?? "登録に失敗しました。" : "";
 
   return (
-    <div className="mx-auto max-w-md rounded-xl border border-slate-700 bg-panel/80 p-6">
+    <div className="mx-auto max-w-md rounded-xl border border-slate-700 bg-panel/80 p-6 text-center">
+      <Image src="/logo.png" alt="SeptCode" width={80} height={80} className="mx-auto mb-4" />
+      <p className="mb-1 text-lg font-display font-semibold tracking-wide text-slate-100">SeptCode</p>
       <h1 className="mb-4 text-2xl font-bold">新規登録</h1>
       {error && <p className="mb-3 text-sm text-rose-300">{error}</p>}
       <form action={registerAction} className="space-y-3">

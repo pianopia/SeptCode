@@ -185,7 +185,7 @@ export async function updatePostAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirect(buildInvalidPostRedirect(resolveCreatePostErrorMessage(parsed.error), `/posts/${postPublicId}`));
+    redirect(buildInvalidPostRedirect(resolveCreatePostErrorMessage(parsed.error), `/posts/${postPublicId}/edit`));
   }
 
   const premiseLines = parsed.data.premiseText

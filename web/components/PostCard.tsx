@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Copy, Hash, Heart, MessageCircle, MoreHorizontal, Share2, Sparkles, Terminal } from "lucide-react";
-import { toggleLikeAction } from "@/app/actions";
+import { Copy, Hash, Heart, MessageCircle, MoreHorizontal, Share2, Terminal } from "lucide-react";
+// import { Sparkles } from "lucide-react";
+import { deletePostAction, toggleLikeAction } from "@/app/actions";
 import { CodeRenderer } from "@/components/CodeRenderer";
 
 type TimelinePost = {
@@ -25,9 +26,11 @@ type TimelinePost = {
   likedByMe: boolean;
 };
 
-export function PostCard({ post, canLike }: { post: TimelinePost; canLike: boolean }) {
-  const [showAiAnalysis, setShowAiAnalysis] = useState(false);
+export function PostCard({ post, canLike, viewerUserId }: { post: TimelinePost; canLike: boolean; viewerUserId: number | null }) {
+  // const [showAiAnalysis, setShowAiAnalysis] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   const langClass = useMemo(() => {
     const l = post.language.toLowerCase();
@@ -61,6 +64,21 @@ export function PostCard({ post, canLike }: { post: TimelinePost; canLike: boole
   }, [post.createdAt]);
 
   const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(post.authorHandle)}`;
+  const hasPreviewTarget = post.code.trim().length > 0;
+  const isOwner = viewerUserId !== null && viewerUserId === post.authorId;
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (!menuRef.current?.contains(target)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuOpen]);
 
   async function copyCode() {
     try {
@@ -92,9 +110,40 @@ export function PostCard({ post, canLike }: { post: TimelinePost; canLike: boole
             </div>
           </div>
         </div>
-        <Link href={`/posts/${post.publicId}`} className="text-slate-500 hover:text-slate-300">
-          <MoreHorizontal className="h-5 w-5" />
-        </Link>
+        {isOwner ? (
+          <div ref={menuRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((open) => !open)}
+              className="text-slate-500 hover:text-slate-300"
+              aria-label="投稿メニュー"
+            >
+              <MoreHorizontal className="h-5 w-5" />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-7 z-20 min-w-36 rounded-lg border border-slate-700 bg-slate-900 p-1 text-sm shadow-xl shadow-black/40">
+                <Link
+                  href={`/posts/${post.publicId}/edit`}
+                  className="block rounded-md px-3 py-2 text-slate-200 hover:bg-slate-800"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  編集する
+                </Link>
+                <form action={deletePostAction}>
+                  <input type="hidden" name="intent" value="delete_post" />
+                  <input type="hidden" name="postPublicId" value={post.publicId} />
+                  <button type="submit" className="w-full rounded-md px-3 py-2 text-left text-rose-300 hover:bg-rose-500/10">
+                    削除する
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Link href={`/posts/${post.publicId}`} className="text-slate-500 hover:text-slate-300">
+            <MoreHorizontal className="h-5 w-5" />
+          </Link>
+        )}
       </div>
 
       <div className="relative bg-[#0d1117]">
@@ -111,32 +160,37 @@ export function PostCard({ post, canLike }: { post: TimelinePost; canLike: boole
         {copied && <span className="absolute bottom-2 right-2 rounded bg-slate-800 px-2 py-1 text-[10px] text-slate-200">Copied</span>}
       </div>
 
-      <div className="relative">
-        <div className={`flex h-12 w-full items-center justify-between overflow-hidden bg-gradient-to-r px-4 ${previewGradient}`}>
-          <div className="flex items-center gap-2">
-            <Terminal className="h-3 w-3 text-white/50" />
-            <span className="text-[10px] uppercase tracking-wider text-white/60">Output Preview</span>
+      {hasPreviewTarget && (
+        <div className="relative">
+          <div className={`flex h-12 w-full items-center justify-between overflow-hidden bg-gradient-to-r px-4 ${previewGradient}`}>
+            <div className="flex items-center gap-2">
+              <Terminal className="h-3 w-3 text-white/50" />
+              <span className="text-[10px] uppercase tracking-wider text-white/60">Output Preview</span>
+            </div>
+            {/*
+            <button
+              type="button"
+              onClick={() => setShowAiAnalysis((v) => !v)}
+              className={`flex items-center gap-1 rounded-full border px-3 py-1 text-[10px] font-bold ${
+                showAiAnalysis
+                  ? "border-purple-400 bg-purple-500 text-white"
+                  : "border-white/10 bg-black/20 text-white hover:bg-black/40"
+              }`}
+            >
+              <Sparkles className="h-3 w-3" /> AI Analyze
+            </button>
+            */}
           </div>
-          <button
-            type="button"
-            onClick={() => setShowAiAnalysis((v) => !v)}
-            className={`flex items-center gap-1 rounded-full border px-3 py-1 text-[10px] font-bold ${
-              showAiAnalysis
-                ? "border-purple-400 bg-purple-500 text-white"
-                : "border-white/10 bg-black/20 text-white hover:bg-black/40"
-            }`}
-          >
-            <Sparkles className="h-3 w-3" /> AI Analyze
-          </button>
+          {/*
+          {showAiAnalysis && (
+            <div className="border-t border-slate-700 bg-slate-800/90 p-4">
+              <p className="mb-1 text-[10px] font-bold tracking-wider text-purple-300">SEPTIMA AI INSIGHT</p>
+              <p className="text-sm font-medium leading-relaxed text-slate-200">{post.aiSummary || "解説未生成"}</p>
+            </div>
+          )}
+          */}
         </div>
-
-        {showAiAnalysis && (
-          <div className="border-t border-slate-700 bg-slate-800/90 p-4">
-            <p className="mb-1 text-[10px] font-bold tracking-wider text-purple-300">SEPTIMA AI INSIGHT</p>
-            <p className="text-sm font-medium leading-relaxed text-slate-200">{post.aiSummary || "解説未生成"}</p>
-          </div>
-        )}
-      </div>
+      )}
 
       <div className="bg-slate-900 p-4">
         <p className="mb-4 whitespace-pre-line text-sm leading-relaxed text-slate-400">

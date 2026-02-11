@@ -27,12 +27,14 @@ export function TimelineFeed({
   initialHasMore,
   tab,
   canLike,
+  viewerUserId,
   emptyMessage
 }: {
   initialItems: TimelinePost[];
   initialHasMore: boolean;
   tab: "for-you" | "following";
   canLike: boolean;
+  viewerUserId: number | null;
   emptyMessage: string;
 }) {
   const [items, setItems] = useState(initialItems);
@@ -86,7 +88,7 @@ export function TimelineFeed({
   return (
     <section className="space-y-3">
       {items.map((post) => (
-        <PostCard key={`${post.publicId}-${post.id}`} post={post} canLike={canLike} />
+        <PostCard key={`${post.publicId}-${post.id}`} post={post} canLike={canLike} viewerUserId={viewerUserId} />
       ))}
 
       {isEmpty && <article className="rounded-xl border border-slate-700 bg-panel/70 p-5 text-sm text-slate-300">{emptyMessage}</article>}

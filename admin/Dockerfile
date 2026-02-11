@@ -5,7 +5,7 @@ WORKDIR /app
 COPY . .
 RUN bun install --frozen-lockfile
 
-WORKDIR /app/web
+WORKDIR /app/admin
 ENV NODE_ENV=production
 RUN bun run build
 

@@ -85,17 +85,11 @@ export function PostComposer({
         </datalist>
 
         <div className="grid gap-2">
-          <input
-            name="premise1"
-            placeholder="前提1 例: 処理対象は10万件"
-            maxLength={140}
-            className="w-full"
-          />
-          <input
-            name="premise2"
-            placeholder="前提2 例: 1秒以内で返す必要あり"
-            maxLength={140}
-            className="w-full"
+          <textarea
+            name="premiseText"
+            placeholder={"前提文を2行で入力\n例: 処理対象は10万件\n例: 1秒以内で返す必要あり"}
+            rows={3}
+            className="w-full resize-y"
           />
           <p className="text-xs text-slate-400">前提文は任意入力です（最大2行、各140文字以内）。</p>
         </div>

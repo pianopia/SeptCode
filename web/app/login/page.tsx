@@ -1,10 +1,13 @@
 import Link from "next/link";
+import Image from "next/image";
 import { loginAction } from "@/app/actions";
 
 export default function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
   const hasError = Boolean(searchParams.error);
   return (
-    <div className="mx-auto max-w-md rounded-xl border border-slate-700 bg-panel/80 p-6">
+    <div className="mx-auto max-w-md rounded-xl border border-slate-700 bg-panel/80 p-6 text-center">
+      <Image src="/logo.png" alt="SeptCode" width={80} height={80} className="mx-auto mb-4" />
+      <p className="mb-1 text-lg font-display font-semibold tracking-wide text-slate-100">SeptCode</p>
       <h1 className="mb-4 text-2xl font-bold">ログイン</h1>
       {hasError && <p className="mb-3 text-sm text-rose-300">認証に失敗しました。</p>}
       <form action={loginAction} className="space-y-3">

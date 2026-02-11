@@ -1,6 +1,7 @@
 import { Link } from "expo-router";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import type { TimelinePost } from "../lib/types";
+import { CodeRenderer } from "./CodeRenderer";
 
 export function PostCard({
   post,
@@ -28,9 +29,7 @@ export function PostCard({
       </View>
       <Text style={styles.premise}>{post.premise1}</Text>
       <Text style={styles.premise}>{post.premise2}</Text>
-      <View style={styles.codeBox}>
-        <Text style={styles.codeText}>{post.code}</Text>
-      </View>
+      <CodeRenderer language={post.language} code={post.code} />
       <View style={styles.tagRow}>
         <Text style={styles.version}>{post.version ?? "latest"}</Text>
         {post.tags.map((tag) => (
@@ -66,8 +65,7 @@ const styles = StyleSheet.create({
   author: { color: "#cde7ff", fontWeight: "700" },
   language: { color: "#87d9ff", fontSize: 12 },
   premise: { color: "#d4dcf8", fontSize: 13 },
-  codeBox: { backgroundColor: "#0a0f1d", borderRadius: 10, borderWidth: 1, borderColor: "#1f2d5a", padding: 10 },
-  codeText: { color: "#bde9ff", fontFamily: "monospace", fontSize: 12 },
+
   tagRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   version: { color: "#6efacb", fontSize: 12 },
   tag: { color: "#9fb3e5", fontSize: 12 },
