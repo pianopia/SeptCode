@@ -13,10 +13,10 @@ export const loginSchema = z.object({
 });
 
 export const createPostSchema = z.object({
-  premiseText: z.string().min(1).max(300),
+  premiseText: z.string().max(300).default(""),
   code: z.string().min(1),
-  language: z.string().min(1).max(40),
-  version: z.string().min(1).max(40),
+  language: z.string().max(40).default(""),
+  version: z.string().max(40).default(""),
   tags: z.string().max(200).default("")
 }).superRefine(({ code, premiseText }, ctx) => {
   const lines = code.split("\n").length;
@@ -31,10 +31,10 @@ export const createPostSchema = z.object({
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
-  if (premiseLines.length !== 2) {
+  if (premiseLines.length > 2) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "前提文は2行で入力してください"
+      message: "前提文は2行以内で入力してください"
     });
   }
   if (premiseLines.some((line) => line.length > 140)) {

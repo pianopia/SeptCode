@@ -3,12 +3,16 @@ import { notFound } from "next/navigation";
 import { toggleFollowAction } from "@/app/actions";
 import { CodeRenderer } from "@/components/CodeRenderer";
 import { getSessionUserId } from "@/lib/auth";
-import { getProfileByHandle } from "@/lib/queries";
+import { getProfileById } from "@/lib/queries";
 
-export default async function UserProfilePage({ params }: { params: { handle: string } }) {
+export default async function UserProfilePage({ params }: { params: { id: string } }) {
+  const profileId = Number(params.id);
+  if (!Number.isInteger(profileId) || profileId <= 0) notFound();
+
   const viewerId = await getSessionUserId();
-  const profile = await getProfileByHandle(params.handle, viewerId);
+  const profile = await getProfileById(profileId, viewerId);
   if (!profile) notFound();
+  const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(profile.handle)}`;
 
   return (
     <div className="space-y-4">
@@ -17,8 +21,13 @@ export default async function UserProfilePage({ params }: { params: { handle: st
       </Link>
 
       <section className="rounded-xl border border-slate-700 bg-panel/80 p-4">
-        <h1 className="text-2xl font-bold">{profile.name}</h1>
-        <p className="text-sm text-slate-400">@{profile.handle}</p>
+        <div className="flex items-start gap-3">
+          <img src={avatarUrl} alt={profile.name} className="h-14 w-14 rounded-full border border-slate-700 bg-slate-800" />
+          <div>
+            <h1 className="text-2xl font-bold">{profile.name}</h1>
+            <p className="text-sm text-slate-400">@{profile.handle}</p>
+          </div>
+        </div>
         <p className="mt-2 text-sm text-slate-300">{profile.bio || "自己紹介はまだありません。"}</p>
 
         <div className="mt-3 flex items-center gap-4 text-sm text-slate-300">
@@ -28,8 +37,8 @@ export default async function UserProfilePage({ params }: { params: { handle: st
 
         {viewerId && viewerId !== profile.id && (
           <form action={toggleFollowAction} className="mt-3">
+            <input type="hidden" name="intent" value="toggle_follow" />
             <input type="hidden" name="targetUserId" value={profile.id} />
-            <input type="hidden" name="targetHandle" value={profile.handle} />
             <button
               type="submit"
               className={`rounded-lg px-3 py-1 text-sm font-semibold ${

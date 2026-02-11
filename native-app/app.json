@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "SeptCode",
+    "icon": "./assets/icon.png",
+    "slug": "septcode-native",
+    "scheme": "septcode",
+    "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "bundleIdentifier": "com.septcode.app",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.septcode.app"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

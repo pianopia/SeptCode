@@ -2,12 +2,34 @@
   "name": "native-app",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
+  "main": "expo-router/entry",
   "scripts": {
-    "dev": "echo 'Native app workspace placeholder. Implement React Native app here.'",
-    "build": "echo 'Native app build placeholder'"
+    "dev": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "build": "expo export --platform android",
+    "release:check-env": "sh -c 'set -a; [ -f ./.env ] && . ./.env; set +a; test -n \"$EXPO_TOKEN\" || { echo \"EXPO_TOKEN is required in native-app/.env\"; exit 1; }; test -n \"$ASC_APP_ID\" || { echo \"ASC_APP_ID is required in native-app/.env\"; exit 1; }; test -n \"$EXPO_PUBLIC_API_URL\" || { echo \"EXPO_PUBLIC_API_URL is required in native-app/.env\"; exit 1; }; echo \"release env ok\"'",
+    "eas:build:testflight": "sh -c 'set -a; [ -f ./.env ] && . ./.env; set +a; test -n \"$EXPO_TOKEN\" || { echo \"EXPO_TOKEN is required in native-app/.env\"; exit 1; }; npx -y eas-cli@latest build --platform ios --profile testflight --non-interactive'",
+    "eas:submit:testflight": "sh -c 'set -a; [ -f ./.env ] && . ./.env; set +a; test -n \"$EXPO_TOKEN\" || { echo \"EXPO_TOKEN is required in native-app/.env\"; exit 1; }; test -n \"$ASC_APP_ID\" || { echo \"ASC_APP_ID is required in native-app/.env\"; exit 1; }; npx -y eas-cli@latest submit --platform ios --profile testflight --latest --asc-app-id \"$ASC_APP_ID\" --non-interactive'",
+    "release:testflight": "bun run eas:build:testflight && bun run eas:submit:testflight",
+    "eas:build:ios": "sh -c 'set -a; [ -f ./.env ] && . ./.env; set +a; test -n \"$EXPO_TOKEN\" || { echo \"EXPO_TOKEN is required in native-app/.env\"; exit 1; }; npx -y eas-cli@latest build --platform ios --profile production --non-interactive'",
+    "eas:submit:ios": "sh -c 'set -a; [ -f ./.env ] && . ./.env; set +a; test -n \"$EXPO_TOKEN\" || { echo \"EXPO_TOKEN is required in native-app/.env\"; exit 1; }; test -n \"$ASC_APP_ID\" || { echo \"ASC_APP_ID is required in native-app/.env\"; exit 1; }; npx -y eas-cli@latest submit --platform ios --profile production --latest --asc-app-id \"$ASC_APP_ID\" --non-interactive'",
+    "release:ios": "bun run eas:build:ios && bun run eas:submit:ios"
   },
   "dependencies": {
-    "@septima/db": "workspace:*"
+    "@react-native-async-storage/async-storage": "^1.24.0",
+    "expo": "^52.0.35",
+    "expo-router": "^4.0.17",
+    "expo-status-bar": "~2.0.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-native": "0.76.7",
+    "react-native-web": "~0.19.13"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.23",
+    "babel-preset-expo": "^12.0.8",
+    "typescript": "^5.8.3"
   }
 }

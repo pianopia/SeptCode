@@ -1,5 +1,6 @@
 import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
-import { comments, follows, likes, postTags, posts, tags, users } from "@septima/db/schema";
+import { comments, follows, likes, postTags, posts, tags, users } from "@septcode/db/schema";
+import { COMPOSER_MASTER } from "@septcode/db/composer-master";
 import { db } from "@/lib/db";
 
 export type TimelineItem = {
@@ -268,10 +269,22 @@ export async function getComposerSuggestions() {
   ]);
 
   return {
-    languages: languageRows.map((x) => x.value).filter((v): v is string => Boolean(v)),
-    versions: versionRows.map((x) => x.value).filter((v): v is string => Boolean(v)),
-    tags: tagRows.map((x) => x.value).filter((v): v is string => Boolean(v))
+    languages: mergeComposerSuggestions(languageRows.map((x) => x.value), COMPOSER_MASTER.languages),
+    versions: mergeComposerSuggestions(versionRows.map((x) => x.value), COMPOSER_MASTER.versions),
+    tags: mergeComposerSuggestions(tagRows.map((x) => x.value), COMPOSER_MASTER.tags)
   };
+}
+
+function mergeComposerSuggestions(values: Array<string | null>, fallback: readonly string[]) {
+  const unique = new Map<string, string>();
+  for (const raw of [...values, ...fallback]) {
+    if (!raw) continue;
+    const value = raw.trim();
+    if (!value) continue;
+    const key = value.toLowerCase();
+    if (!unique.has(key)) unique.set(key, value);
+  }
+  return Array.from(unique.values()).slice(0, 80);
 }
 
 export async function getPostDetail(publicId: string, userId?: number | null) {
@@ -332,8 +345,8 @@ export async function getPostDetail(publicId: string, userId?: number | null) {
   };
 }
 
-export async function getProfileByHandle(handle: string, viewerId?: number | null) {
-  const user = (await db.select().from(users).where(eq(users.handle, handle)).limit(1))[0];
+export async function getProfileById(id: number, viewerId?: number | null) {
+  const user = (await db.select().from(users).where(eq(users.id, id)).limit(1))[0];
   if (!user) return null;
 
   const [followerCount, followingCount, isFollowing, userPosts] = await Promise.all([

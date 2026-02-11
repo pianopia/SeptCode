@@ -3,11 +3,17 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { comments, follows, likes, postTags, posts, tags, users } from "@septima/db/schema";
+import { comments, follows, likes, postTags, posts, tags, users } from "@septcode/db/schema";
 import { explainCode } from "@/lib/ai";
 import { clearSession, comparePassword, getSessionUserId, hashPassword, setSession } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { buildInvalidPostRedirect, resolveCreatePostErrorMessage } from "@/lib/post-errors";
+import { buildPremiseTextFromFormValues } from "@/lib/premise";
 import { commentSchema, createPostSchema, loginSchema, registerSchema } from "@/lib/validators";
+
+function hasIntent(formData: FormData, expected: string) {
+  return formData.get("intent") === expected;
+}
 
 function parseTags(raw: string) {
   return raw
@@ -17,7 +23,30 @@ function parseTags(raw: string) {
     .slice(0, 8);
 }
 
+async function replacePostTags(postId: number, tagNames: string[], language: string) {
+  await db.delete(postTags).where(eq(postTags.postId, postId));
+
+  for (const name of tagNames) {
+    const found = (await db.select().from(tags).where(eq(tags.name, name)).limit(1))[0];
+    if (!found) {
+      await db
+        .insert(tags)
+        .values({
+          name,
+          kind:
+            name.toLowerCase() === language.toLowerCase() ? "language" : /^v?\d/.test(name) ? "version" : "library"
+        })
+        .onConflictDoNothing();
+    }
+    const current = (await db.select().from(tags).where(eq(tags.name, name)).limit(1))[0];
+    if (!current) continue;
+    await db.insert(postTags).values({ postId, tagId: current.id }).onConflictDoNothing();
+  }
+}
+
 export async function registerAction(formData: FormData) {
+  if (!hasIntent(formData, "register")) redirect("/register");
+
   const parsed = registerSchema.safeParse({
     name: formData.get("name"),
     handle: formData.get("handle"),
@@ -51,6 +80,8 @@ export async function registerAction(formData: FormData) {
 }
 
 export async function loginAction(formData: FormData) {
+  if (!hasIntent(formData, "login")) redirect("/login");
+
   const parsed = loginSchema.safeParse({ email: formData.get("email"), password: formData.get("password") });
   if (!parsed.success) redirect("/login?error=invalid_input");
 
@@ -71,7 +102,9 @@ export async function loginAction(formData: FormData) {
   redirect("/");
 }
 
-export async function logoutAction() {
+export async function logoutAction(formData: FormData) {
+  if (!hasIntent(formData, "logout")) redirect("/");
+
   clearSession();
   redirect("/");
 }
@@ -79,25 +112,29 @@ export async function logoutAction() {
 export async function createPostAction(formData: FormData) {
   const userId = await getSessionUserId();
   if (!userId) redirect("/login");
+  if (!hasIntent(formData, "create_post")) redirect("/");
+
+  const premiseText = buildPremiseTextFromFormValues(formData.get("premise1"), formData.get("premise2"), formData.get("premiseText"));
 
   const parsed = createPostSchema.safeParse({
-    premiseText: formData.get("premiseText"),
-    code: formData.get("code"),
-    language: formData.get("language"),
-    version: formData.get("version"),
-    tags: formData.get("tags")
+    premiseText,
+    code: String(formData.get("code") ?? ""),
+    language: String(formData.get("language") ?? ""),
+    version: String(formData.get("version") ?? ""),
+    tags: String(formData.get("tags") ?? "")
   });
 
-  if (!parsed.success) redirect("/?error=invalid_post");
+  if (!parsed.success) {
+    redirect(buildInvalidPostRedirect(resolveCreatePostErrorMessage(parsed.error)));
+  }
 
-  const [premise1, premise2] = parsed.data.premiseText
+  const premiseLines = parsed.data.premiseText
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
-
-  if (!premise1 || !premise2) redirect("/?error=invalid_post");
-
-  const aiSummary = await explainCode(premise1, premise2, parsed.data.code);
+  const premise1 = premiseLines[0] ?? "";
+  const premise2 = premiseLines[1] ?? "";
+  const aiSummary = await explainCode(premise1 || "前提なし", premise2 || "前提なし", parsed.data.code);
   const publicId = crypto.randomUUID();
   const created = await db
     .insert(posts)
@@ -108,43 +145,105 @@ export async function createPostAction(formData: FormData) {
       premise2,
       code: parsed.data.code,
       language: parsed.data.language,
-      version: parsed.data.version,
+      version: parsed.data.version || null,
       aiSummary
     })
     .returning({ id: posts.id });
 
   const postId = created[0].id;
   const tagNames = parseTags(parsed.data.tags);
-
-  for (const name of tagNames) {
-    const found = (await db.select().from(tags).where(eq(tags.name, name)).limit(1))[0];
-    if (!found) {
-      await db
-        .insert(tags)
-        .values({
-          name,
-          kind:
-            name.toLowerCase() === parsed.data.language.toLowerCase()
-              ? "language"
-              : /^v?\d/.test(name)
-                ? "version"
-                : "library"
-        })
-        .onConflictDoNothing();
-    }
-    const current = (await db.select().from(tags).where(eq(tags.name, name)).limit(1))[0];
-    if (!current) continue;
-    const tagId = current.id;
-    await db.insert(postTags).values({ postId, tagId }).onConflictDoNothing();
-  }
+  await replacePostTags(postId, tagNames, parsed.data.language);
 
   revalidatePath("/");
   redirect(`/posts/${publicId}`);
 }
 
+export async function updatePostAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  if (!userId) redirect("/login");
+  if (!hasIntent(formData, "update_post")) redirect("/");
+
+  const postPublicId = String(formData.get("postPublicId") ?? "");
+  if (!postPublicId) redirect("/");
+
+  const existing = (
+    await db
+      .select({ id: posts.id, userId: posts.userId, publicId: posts.publicId })
+      .from(posts)
+      .where(eq(posts.publicId, postPublicId))
+      .limit(1)
+  )[0];
+  if (!existing || existing.userId !== userId) redirect(`/posts/${postPublicId}`);
+
+  const premiseText = buildPremiseTextFromFormValues(formData.get("premise1"), formData.get("premise2"), formData.get("premiseText"));
+  const parsed = createPostSchema.safeParse({
+    premiseText,
+    code: String(formData.get("code") ?? ""),
+    language: String(formData.get("language") ?? ""),
+    version: String(formData.get("version") ?? ""),
+    tags: String(formData.get("tags") ?? "")
+  });
+
+  if (!parsed.success) {
+    redirect(buildInvalidPostRedirect(resolveCreatePostErrorMessage(parsed.error), `/posts/${postPublicId}`));
+  }
+
+  const premiseLines = parsed.data.premiseText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const premise1 = premiseLines[0] ?? "";
+  const premise2 = premiseLines[1] ?? "";
+  const aiSummary = await explainCode(premise1 || "前提なし", premise2 || "前提なし", parsed.data.code);
+
+  await db
+    .update(posts)
+    .set({
+      premise1,
+      premise2,
+      code: parsed.data.code,
+      language: parsed.data.language,
+      version: parsed.data.version || null,
+      aiSummary
+    })
+    .where(eq(posts.id, existing.id));
+
+  const tagNames = parseTags(parsed.data.tags);
+  await replacePostTags(existing.id, tagNames, parsed.data.language);
+
+  revalidatePath("/");
+  revalidatePath(`/posts/${postPublicId}`);
+  revalidatePath(`/u/${userId}`);
+  redirect(`/posts/${postPublicId}`);
+}
+
+export async function deletePostAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  if (!userId) redirect("/login");
+  if (!hasIntent(formData, "delete_post")) redirect("/");
+
+  const postPublicId = String(formData.get("postPublicId") ?? "");
+  if (!postPublicId) redirect("/");
+
+  const existing = (
+    await db
+      .select({ id: posts.id, userId: posts.userId })
+      .from(posts)
+      .where(eq(posts.publicId, postPublicId))
+      .limit(1)
+  )[0];
+  if (!existing || existing.userId !== userId) redirect(`/posts/${postPublicId}`);
+
+  await db.delete(posts).where(eq(posts.id, existing.id));
+  revalidatePath("/");
+  revalidatePath(`/u/${userId}`);
+  redirect("/");
+}
+
 export async function toggleLikeAction(formData: FormData) {
   const userId = await getSessionUserId();
   if (!userId) redirect("/login");
+  if (!hasIntent(formData, "toggle_like")) redirect("/");
 
   const postId = Number(formData.get("postId"));
   const postPublicId = String(formData.get("postPublicId") ?? "");
@@ -169,6 +268,7 @@ export async function toggleLikeAction(formData: FormData) {
 export async function addCommentAction(formData: FormData) {
   const userId = await getSessionUserId();
   if (!userId) redirect("/login");
+  if (!hasIntent(formData, "add_comment")) redirect("/");
 
   const postId = Number(formData.get("postId"));
   const postPublicId = String(formData.get("postPublicId") ?? "");
@@ -183,10 +283,10 @@ export async function addCommentAction(formData: FormData) {
 export async function toggleFollowAction(formData: FormData) {
   const userId = await getSessionUserId();
   if (!userId) redirect("/login");
+  if (!hasIntent(formData, "toggle_follow")) redirect("/");
 
   const targetUserId = Number(formData.get("targetUserId"));
-  const targetHandle = String(formData.get("targetHandle") ?? "");
-  if (!Number.isFinite(targetUserId) || targetUserId === userId) redirect(`/u/${targetHandle}`);
+  if (!Number.isFinite(targetUserId) || targetUserId === userId) redirect("/");
 
   const existing = await db
     .select()
@@ -200,5 +300,5 @@ export async function toggleFollowAction(formData: FormData) {
     await db.insert(follows).values({ followerId: userId, followingId: targetUserId });
   }
 
-  revalidatePath(`/u/${targetHandle}`);
+  revalidatePath(`/u/${targetUserId}`);
 }

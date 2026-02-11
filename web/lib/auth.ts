@@ -3,7 +3,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { env } from "@/lib/env";
 
-const COOKIE_NAME = "septima_session";
+const COOKIE_NAME = "septcode_session";
 
 const secret = new TextEncoder().encode(env.authSecret);
 

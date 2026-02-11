@@ -240,7 +240,7 @@ const CodeBlock = ({ code }) => {
 };
 
 // --- メインアプリ ---
-export default function SeptimaApp() {
+export default function SeptCodeApp() {
     const [activeTab, setActiveTab] = useState('feed');
     const [posts, setPosts] = useState(INITIAL_POSTS);
 
@@ -310,7 +310,7 @@ export default function SeptimaApp() {
             <div className="flex items-center justify-between px-4 pt-4 sticky top-0 bg-slate-950/80 backdrop-blur-md z-10 py-3 border-b border-white/5" >
                 <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400 font-mono tracking-tighter cursor-pointer" onClick={() => window.scrollTo(0, 0)
                 }>
-                    Septima
+                    SeptCode
                 </h1>
                 < div className="flex space-x-4" >
                     <Search className="w-6 h-6 text-slate-400" />

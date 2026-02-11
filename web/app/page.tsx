@@ -2,26 +2,32 @@ import Link from "next/link";
 import { logoutAction } from "@/app/actions";
 import { ComposeFab } from "@/components/ComposeFab";
 import { TimelineFeed } from "@/components/TimelineFeed";
-import { users } from "@septima/db/schema";
+import { users } from "@septcode/db/schema";
 import { db } from "@/lib/db";
 import { getSessionUserId } from "@/lib/auth";
+import { DEFAULT_POST_ERROR_MESSAGE } from "@/lib/post-errors";
 import { getComposerSuggestions, getTimelinePage } from "@/lib/queries";
 import { eq } from "drizzle-orm";
 
 type HomeSearchParams = {
   tab?: string | string[];
+  error?: string | string[];
+  post_error?: string | string[];
 };
 
 export default async function HomePage({ searchParams }: { searchParams?: HomeSearchParams }) {
   const userId = await getSessionUserId();
   const rawTab = Array.isArray(searchParams?.tab) ? searchParams?.tab[0] : searchParams?.tab;
+  const rawError = Array.isArray(searchParams?.error) ? searchParams?.error[0] : searchParams?.error;
+  const rawPostError = Array.isArray(searchParams?.post_error) ? searchParams?.post_error[0] : searchParams?.post_error;
   const tab = rawTab === "following" ? "following" : "for-you";
+  const postErrorMessage = rawPostError && rawPostError.trim().length > 0 ? rawPostError : DEFAULT_POST_ERROR_MESSAGE;
 
   const [forYouPage, followingPage, me, suggestions] = await Promise.all([
     getTimelinePage({ tab: "for-you", userId, page: 1, limit: 20 }),
     userId ? getTimelinePage({ tab: "following", userId, page: 1, limit: 20 }) : Promise.resolve({ items: [], hasMore: false }),
     userId ? db.select().from(users).where(eq(users.id, userId)).limit(1) : Promise.resolve([]),
-    userId ? getComposerSuggestions() : Promise.resolve({ languages: [], versions: [], tags: [] })
+    getComposerSuggestions()
   ]);
 
   const effectiveTab: "for-you" | "following" = tab === "following" && me[0] ? "following" : "for-you";
@@ -33,7 +39,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
         <div className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
           <div className="flex min-w-0 items-end gap-2">
             <h1 className="min-w-0 truncate font-display text-3xl leading-none tracking-[0.04em] text-transparent bg-gradient-to-r from-emerald-300 via-cyan-300 to-blue-400 bg-clip-text sm:text-4xl sm:tracking-[0.06em]">
-              Septima
+              SeptCode
             </h1>
             <span className="pb-1 text-[10px] font-semibold tracking-wide text-slate-300 sm:text-xs">-7行のコード共有-</span>
           </div>
@@ -41,6 +47,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
             <div className="flex items-center justify-between gap-2 text-xs sm:justify-end sm:text-sm">
               <span className="max-w-[48vw] truncate text-slate-300 sm:max-w-none">@{me[0].handle}</span>
               <form action={logoutAction}>
+                <input type="hidden" name="intent" value="logout" />
                 <button
                   type="submit"
                   className="rounded-full border border-slate-600 px-2.5 py-1 text-xs hover:border-slate-300 sm:px-3 sm:text-sm"
@@ -97,6 +104,12 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
           ) : (
             <span>おすすめ投稿を表示中。フォロー中タブではフォロー先の投稿だけを表示します。</span>
           )}
+        </article>
+      )}
+
+      {rawError === "invalid_post" && (
+        <article className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          投稿に失敗しました: {postErrorMessage}
         </article>
       )}
 

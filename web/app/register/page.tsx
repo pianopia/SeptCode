@@ -14,6 +14,7 @@ export default function RegisterPage({ searchParams }: { searchParams: { error?:
       <h1 className="mb-4 text-2xl font-bold">新規登録</h1>
       {error && <p className="mb-3 text-sm text-rose-300">{error}</p>}
       <form action={registerAction} className="space-y-3">
+        <input type="hidden" name="intent" value="register" />
         <input name="name" placeholder="表示名" required className="w-full" />
         <input name="handle" placeholder="handle (英数字と_)" required className="w-full" />
         <input name="email" type="email" placeholder="Email" required className="w-full" />

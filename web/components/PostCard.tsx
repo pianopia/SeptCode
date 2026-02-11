@@ -16,6 +16,7 @@ type TimelinePost = {
   version: string | null;
   aiSummary: string | null;
   createdAt: string;
+  authorId: number;
   authorName: string;
   authorHandle: string;
   likeCount: number;
@@ -75,10 +76,12 @@ export function PostCard({ post, canLike }: { post: TimelinePost; canLike: boole
     <article className="group overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-xl shadow-black/20">
       <div className="flex items-start justify-between border-b border-slate-800/50 bg-[#0d1117] p-4">
         <div className="flex items-center gap-3">
-          <img src={avatarUrl} alt={post.authorName} className="h-10 w-10 rounded-full border border-slate-700 bg-slate-800" />
+          <Link href={`/u/${post.authorId}`} aria-label={`${post.authorName} のプロフィール`} className="block">
+            <img src={avatarUrl} alt={post.authorName} className="h-10 w-10 rounded-full border border-slate-700 bg-slate-800" />
+          </Link>
           <div>
             <div className="flex items-center gap-2">
-              <Link href={`/u/${post.authorHandle}`} className="text-sm font-bold text-slate-200 hover:text-slate-50">
+              <Link href={`/u/${post.authorId}`} className="text-sm font-bold text-slate-200 hover:text-slate-50">
                 {post.authorName}
               </Link>
               <span className="text-xs text-slate-500">@{post.authorHandle}</span>
@@ -152,6 +155,7 @@ export function PostCard({ post, canLike }: { post: TimelinePost; canLike: boole
         <div className="flex items-center justify-between border-t border-slate-800/50 pt-2 text-slate-500">
           <div className="flex items-center gap-6">
             <form action={toggleLikeAction}>
+              <input type="hidden" name="intent" value="toggle_like" />
               <input type="hidden" name="postId" value={post.id} />
               <input type="hidden" name="postPublicId" value={post.publicId} />
               <button

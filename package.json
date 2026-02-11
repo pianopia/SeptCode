@@ -1,5 +1,5 @@
 {
-  "name": "septima-monorepo",
+  "name": "septcode-monorepo",
   "private": true,
   "packageManager": "bun@1.1.42",
   "workspaces": [
@@ -10,11 +10,20 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:web": "bun --filter web dev",
-    "build:web": "bun --filter web build",
-    "start:web": "bun --filter web start",
-    "db:generate": "bun --filter web db:generate",
-    "db:push": "bun --filter web db:push",
-    "db:seed": "bun --filter @septima/db seed"
+    "dev:web": "bun run --cwd web dev",
+    "dev:api": "bun run --cwd api dev",
+    "dev:admin": "bun run --cwd admin dev",
+    "dev:native": "bun run --cwd native-app dev",
+    "dev:app": "bun run --cwd native-app dev",
+    "build:web": "bun run --cwd web build",
+    "build:api": "bun run --cwd api build",
+    "build:admin": "bun run --cwd admin build",
+    "build:native": "bun run --cwd native-app build",
+    "start:web": "bun run --cwd web start",
+    "start:api": "bun run --cwd api start",
+    "start:admin": "bun run --cwd admin start",
+    "db:generate": "bun run --cwd web db:generate",
+    "db:push": "bun run --cwd web db:push",
+    "db:seed": "bun run --cwd packages/db seed"
   }
 }

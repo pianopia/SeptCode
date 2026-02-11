@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { createPostAction } from "@/app/actions";
+import { COMPOSER_MASTER } from "@septcode/db/composer-master";
 
 type ComposerSuggestions = {
   languages: string[];
@@ -11,9 +12,9 @@ type ComposerSuggestions = {
 };
 
 const DEFAULT_SUGGESTIONS: ComposerSuggestions = {
-  languages: ["TypeScript", "JavaScript", "Python", "Rust", "SQL", "Mermaid"],
-  versions: ["latest", "v5", "v4", "3.12", "1.81"],
-  tags: ["react", "nextjs", "drizzle", "turso", "mermaid", "highlightjs"]
+  languages: [...COMPOSER_MASTER.languages],
+  versions: [...COMPOSER_MASTER.versions],
+  tags: [...COMPOSER_MASTER.tags]
 };
 
 export function PostComposer({
@@ -32,6 +33,7 @@ export function PostComposer({
     <section className={compact ? "" : "rounded-xl border border-slate-700 bg-panel/80 p-4"}>
       {!compact && <h2 className="mb-3 text-lg font-semibold">新規投稿</h2>}
       <form action={createPostAction} className="space-y-3">
+        <input type="hidden" name="intent" value="create_post" />
         <div className="overflow-hidden rounded-xl border border-slate-700 bg-[#0d1117]">
           <div className="grid grid-cols-[44px_1fr]">
             <div className="select-none border-r border-slate-800 bg-slate-900/70 py-3 text-center font-mono text-xs leading-6 text-slate-600">
@@ -62,8 +64,8 @@ export function PostComposer({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
-          <input name="language" placeholder="language (e.g. TypeScript)" required list="language-suggestions" />
-          <input name="version" placeholder="version (e.g. v5)" defaultValue="latest" required list="version-suggestions" />
+          <input name="language" placeholder="language (optional)" list="language-suggestions" />
+          <input name="version" placeholder="version (optional)" list="version-suggestions" />
           <input name="tags" placeholder="tags (comma separated)" list="tag-suggestions" />
         </div>
         <datalist id="language-suggestions">
@@ -82,15 +84,20 @@ export function PostComposer({
           ))}
         </datalist>
 
-        <div>
-          <textarea
-            name="premiseText"
-            placeholder={"前提文を2行で入力\n例: 処理対象は10万件\n例: 1秒以内で返す必要あり"}
-            required
-            maxLength={300}
-            rows={2}
-            className="w-full resize-none"
+        <div className="grid gap-2">
+          <input
+            name="premise1"
+            placeholder="前提1 例: 処理対象は10万件"
+            maxLength={140}
+            className="w-full"
           />
+          <input
+            name="premise2"
+            placeholder="前提2 例: 1秒以内で返す必要あり"
+            maxLength={140}
+            className="w-full"
+          />
+          <p className="text-xs text-slate-400">前提文は任意入力です（最大2行、各140文字以内）。</p>
         </div>
 
         <button

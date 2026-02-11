@@ -1,11 +1,12 @@
 {
-  "name": "@septima/db",
+  "name": "@septcode/db",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema.ts"
+    "./schema": "./src/schema.ts",
+    "./composer-master": "./src/composer-master.ts"
   },
   "scripts": {
     "seed": "bun src/seed.ts"

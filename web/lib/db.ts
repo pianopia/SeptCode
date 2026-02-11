@@ -1,7 +1,7 @@
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { env } from "@/lib/env";
-import * as schema from "@septima/db/schema";
+import * as schema from "@septcode/db/schema";
 
 if (!env.tursoUrl) {
   throw new Error(

@@ -141,3 +141,10 @@ vite.config.ts.timestamp-*
 # OS / editor
 .DS_Store
 .idea/
+
+# Expo / React Native
+.expo/
+native-app/.expo/
+native-app/.expo-shared/
+native-app/android/
+native-app/ios/
