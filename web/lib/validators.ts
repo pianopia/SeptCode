@@ -50,3 +50,8 @@ export const commentSchema = z.object({
   postPublicId: z.string().min(1).max(64),
   body: z.string().min(1).max(240)
 });
+
+export const deleteCommentSchema = z.object({
+  commentId: z.number().int().positive(),
+  postPublicId: z.string().min(1).max(64)
+});

@@ -325,6 +325,7 @@ export async function getPostDetail(publicId: string, userId?: number | null) {
     db
       .select({
         id: comments.id,
+        userId: comments.userId,
         body: comments.body,
         createdAt: comments.createdAt,
         userName: users.name,
@@ -380,4 +381,15 @@ export async function getProfileById(id: number, viewerId?: number | null) {
     isFollowing: isFollowing.length > 0,
     posts: userPosts
   };
+}
+
+export async function getPostSitemapEntries(limit = 50000) {
+  return db
+    .select({
+      publicId: posts.publicId,
+      createdAt: posts.createdAt
+    })
+    .from(posts)
+    .orderBy(desc(posts.createdAt))
+    .limit(limit);
 }

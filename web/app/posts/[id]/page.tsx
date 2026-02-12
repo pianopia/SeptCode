@@ -1,9 +1,67 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { addCommentAction, toggleLikeAction } from "@/app/actions";
+import { addCommentAction, deleteCommentAction, toggleLikeAction } from "@/app/actions";
 import { CodeRenderer } from "@/components/CodeRenderer";
 import { getSessionUserId } from "@/lib/auth";
 import { getPostDetail } from "@/lib/queries";
+import { getSiteUrl } from "@/lib/site-url";
+
+export async function generateMetadata({
+  params
+}: {
+  params: { id: string };
+}): Promise<Metadata> {
+  const post = await getPostDetail(params.id);
+  if (!post) {
+    return {
+      title: "投稿が見つかりません | SeptCode",
+      robots: {
+        index: false,
+        follow: false
+      }
+    };
+  }
+
+  const siteUrl = getSiteUrl();
+  const description = [post.premise1, post.premise2].filter(Boolean).join(" ").slice(0, 140);
+  const url = `${siteUrl}/posts/${post.publicId}`;
+  const ogImage = `${siteUrl}/logo.png`;
+  const title = `${post.authorHandle} の投稿 | SeptCode`;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `/posts/${post.publicId}`
+    },
+    robots: {
+      index: true,
+      follow: true
+    },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: "article",
+      siteName: "SeptCode",
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: "SeptCode"
+        }
+      ]
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage]
+    }
+  };
+}
 
 export default async function PostDetailPage({
   params
@@ -86,9 +144,21 @@ export default async function PostDetailPage({
           {post.comments.map((comment) => (
             <div key={comment.id} className="rounded-lg border border-slate-700 bg-slate-900/70 p-3">
               <p className="text-sm text-slate-100">{comment.body}</p>
-              <p className="mt-1 text-xs text-slate-400">
-                {comment.userName} (@{comment.userHandle})
-              </p>
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <p className="text-xs text-slate-400">
+                  {comment.userName} (@{comment.userHandle})
+                </p>
+                {userId && comment.userId === userId ? (
+                  <form action={deleteCommentAction}>
+                    <input type="hidden" name="intent" value="delete_comment" />
+                    <input type="hidden" name="commentId" value={comment.id} />
+                    <input type="hidden" name="postPublicId" value={post.publicId} />
+                    <button type="submit" className="text-xs text-rose-300 hover:text-rose-200">
+                      削除する
+                    </button>
+                  </form>
+                ) : null}
+              </div>
             </div>
           ))}
           {post.comments.length === 0 && <p className="text-sm text-slate-400">まだコメントはありません。</p>}

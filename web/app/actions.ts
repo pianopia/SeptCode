@@ -9,7 +9,7 @@ import { clearSession, comparePassword, getSessionUserId, hashPassword, setSessi
 import { db } from "@/lib/db";
 import { buildInvalidPostRedirect, resolveCreatePostErrorMessage } from "@/lib/post-errors";
 import { buildPremiseTextFromFormValues } from "@/lib/premise";
-import { commentSchema, createPostSchema, loginSchema, registerSchema } from "@/lib/validators";
+import { commentSchema, createPostSchema, deleteCommentSchema, loginSchema, registerSchema } from "@/lib/validators";
 
 function hasIntent(formData: FormData, expected: string) {
   return formData.get("intent") === expected;
@@ -277,6 +277,30 @@ export async function addCommentAction(formData: FormData) {
   if (!parsed.success) redirect(`/posts/${postPublicId}?error=invalid_comment`);
 
   await db.insert(comments).values({ postId: parsed.data.postId, userId, body: parsed.data.body });
+  revalidatePath(`/posts/${parsed.data.postPublicId}`);
+}
+
+export async function deleteCommentAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  if (!userId) redirect("/login");
+  if (!hasIntent(formData, "delete_comment")) redirect("/");
+
+  const commentId = Number(formData.get("commentId"));
+  const postPublicId = String(formData.get("postPublicId") ?? "");
+  const parsed = deleteCommentSchema.safeParse({ commentId, postPublicId });
+  if (!parsed.success) redirect(postPublicId ? `/posts/${postPublicId}` : "/");
+
+  const existing = (
+    await db
+      .select({ id: comments.id, userId: comments.userId })
+      .from(comments)
+      .where(eq(comments.id, parsed.data.commentId))
+      .limit(1)
+  )[0];
+
+  if (!existing || existing.userId !== userId) redirect(`/posts/${parsed.data.postPublicId}`);
+
+  await db.delete(comments).where(eq(comments.id, existing.id));
   revalidatePath(`/posts/${parsed.data.postPublicId}`);
 }
 

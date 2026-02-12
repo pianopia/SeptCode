@@ -208,14 +208,14 @@ export function PostCard({ post, canLike, viewerUserId }: { post: TimelinePost; 
         </div>
         <div className="flex items-center justify-between border-t border-slate-800/50 pt-2 text-slate-500">
           <div className="flex items-center gap-6">
-            <form action={toggleLikeAction}>
+            <form action={toggleLikeAction} className="m-0">
               <input type="hidden" name="intent" value="toggle_like" />
               <input type="hidden" name="postId" value={post.id} />
               <input type="hidden" name="postPublicId" value={post.publicId} />
               <button
                 type="submit"
                 disabled={!canLike}
-                className={`group inline-flex items-center gap-1.5 transition ${
+                className={`group inline-flex h-8 items-center gap-1.5 leading-none transition ${
                   post.likedByMe ? "text-pink-400" : "hover:text-pink-500"
                 } disabled:opacity-40`}
               >
@@ -223,11 +223,11 @@ export function PostCard({ post, canLike, viewerUserId }: { post: TimelinePost; 
                 <span className="text-xs font-medium">{post.likeCount}</span>
               </button>
             </form>
-            <Link href={`/posts/${post.publicId}`} className="inline-flex items-center gap-1.5 transition hover:text-blue-400">
+            <Link href={`/posts/${post.publicId}`} className="inline-flex h-8 items-center gap-1.5 transition hover:text-blue-400">
               <MessageCircle className="h-5 w-5" />
               <span className="text-xs font-medium">{post.commentCount}</span>
             </Link>
-            <Link href={`/posts/${post.publicId}`} className="inline-flex items-center gap-1.5 transition hover:text-slate-300">
+            <Link href={`/posts/${post.publicId}`} className="inline-flex h-8 items-center gap-1.5 transition hover:text-slate-300">
               <Share2 className="h-5 w-5" />
             </Link>
           </div>

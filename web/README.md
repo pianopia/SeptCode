@@ -13,6 +13,7 @@ bun run dev:web
 - `TURSO_DATABASE_URL`
 - `TURSO_AUTH_TOKEN` (必要な場合)
 - `AUTH_SECRET`
+- `NEXT_PUBLIC_SITE_URL` (例: `https://septcode.example.com`)
 - `PORT` (Cloud Run では自動注入)
 
 `web/.env.example` をコピーして `web/.env` を作成してください。
