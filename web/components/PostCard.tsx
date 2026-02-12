@@ -160,6 +160,7 @@ export function PostCard({ post, canLike, viewerUserId }: { post: TimelinePost; 
         {copied && <span className="absolute bottom-2 right-2 rounded bg-slate-800 px-2 py-1 text-[10px] text-slate-200">Copied</span>}
       </div>
 
+      {/*
       {hasPreviewTarget && (
         <div className="relative">
           <div className={`flex h-12 w-full items-center justify-between overflow-hidden bg-gradient-to-r px-4 ${previewGradient}`}>
@@ -167,30 +168,10 @@ export function PostCard({ post, canLike, viewerUserId }: { post: TimelinePost; 
               <Terminal className="h-3 w-3 text-white/50" />
               <span className="text-[10px] uppercase tracking-wider text-white/60">Output Preview</span>
             </div>
-            {/*
-            <button
-              type="button"
-              onClick={() => setShowAiAnalysis((v) => !v)}
-              className={`flex items-center gap-1 rounded-full border px-3 py-1 text-[10px] font-bold ${
-                showAiAnalysis
-                  ? "border-purple-400 bg-purple-500 text-white"
-                  : "border-white/10 bg-black/20 text-white hover:bg-black/40"
-              }`}
-            >
-              <Sparkles className="h-3 w-3" /> AI Analyze
-            </button>
-            */}
           </div>
-          {/*
-          {showAiAnalysis && (
-            <div className="border-t border-slate-700 bg-slate-800/90 p-4">
-              <p className="mb-1 text-[10px] font-bold tracking-wider text-purple-300">SEPTIMA AI INSIGHT</p>
-              <p className="text-sm font-medium leading-relaxed text-slate-200">{post.aiSummary || "解説未生成"}</p>
-            </div>
-          )}
-          */}
         </div>
       )}
+      */}
 
       <div className="bg-slate-900 p-4">
         <p className="mb-4 whitespace-pre-line text-sm leading-relaxed text-slate-400">
