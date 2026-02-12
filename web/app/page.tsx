@@ -67,28 +67,6 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
           )}
         </div>
 
-        <nav className="grid grid-cols-2 border-t border-slate-700/80 text-xs sm:text-sm">
-          <Link
-            href="/?tab=for-you"
-            className={`px-4 py-3 text-center font-semibold ${
-              effectiveTab === "for-you" ? "border-b-2 border-accent text-ink" : "text-slate-400 hover:bg-slate-800/40"
-            }`}
-          >
-            おすすめ
-          </Link>
-          {me[0] ? (
-            <Link
-              href="/?tab=following"
-              className={`px-4 py-3 text-center font-semibold ${
-                effectiveTab === "following" ? "border-b-2 border-accent text-ink" : "text-slate-400 hover:bg-slate-800/40"
-              }`}
-            >
-              フォロー中
-            </Link>
-          ) : (
-            <span className="px-4 py-3 text-center font-semibold text-slate-600">フォロー中</span>
-          )}
-        </nav>
       </header>
 
       {me[0] && (
@@ -116,6 +94,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
         initialItems={activePage.items}
         initialHasMore={activePage.hasMore}
         tab={effectiveTab}
+        query=""
         canLike={Boolean(me[0])}
         viewerUserId={me[0]?.id ?? null}
         emptyMessage={

@@ -8,6 +8,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const tabParam = searchParams.get("tab");
   const pageParam = Number(searchParams.get("page") ?? "1");
+  const qParam = searchParams.get("q");
   const tab = tabParam === "following" ? "following" : "for-you";
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
 
@@ -16,7 +17,8 @@ export async function GET(request: Request) {
     tab,
     userId,
     page,
-    limit: 20
+    limit: 20,
+    query: qParam
   });
 
   return NextResponse.json(result);

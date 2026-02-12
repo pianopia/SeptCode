@@ -18,7 +18,7 @@ export function ComposeFab({ suggestions }: { suggestions: ComposerSuggestions }
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-accent text-slate-950 shadow-xl shadow-emerald-900/40 hover:bg-green-400"
+        className="fixed bottom-24 right-6 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-accent text-slate-950 shadow-xl shadow-emerald-900/40 hover:bg-green-400"
         aria-label="新規投稿"
       >
         <Plus className="h-7 w-7" />

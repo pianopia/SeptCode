@@ -26,6 +26,7 @@ export function TimelineFeed({
   initialItems,
   initialHasMore,
   tab,
+  query,
   canLike,
   viewerUserId,
   emptyMessage
@@ -33,6 +34,7 @@ export function TimelineFeed({
   initialItems: TimelinePost[];
   initialHasMore: boolean;
   tab: "for-you" | "following";
+  query: string;
   canLike: boolean;
   viewerUserId: number | null;
   emptyMessage: string;
@@ -48,14 +50,15 @@ export function TimelineFeed({
     setPage(1);
     setHasMore(initialHasMore);
     setLoading(false);
-  }, [initialItems, initialHasMore, tab]);
+  }, [initialItems, initialHasMore, tab, query]);
 
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) return;
     setLoading(true);
     try {
       const nextPage = page + 1;
-      const response = await fetch(`/api/timeline?tab=${tab}&page=${nextPage}`, { cache: "no-store" });
+      const searchQuery = query ? `&q=${encodeURIComponent(query)}` : "";
+      const response = await fetch(`/api/timeline?tab=${tab}&page=${nextPage}${searchQuery}`, { cache: "no-store" });
       if (!response.ok) return;
       const data = (await response.json()) as { items: TimelinePost[]; hasMore: boolean };
       setItems((prev) => [...prev, ...data.items]);
@@ -64,7 +67,7 @@ export function TimelineFeed({
     } finally {
       setLoading(false);
     }
-  }, [loading, hasMore, page, tab]);
+  }, [loading, hasMore, page, tab, query]);
 
   useEffect(() => {
     if (!sentinelRef.current) return;

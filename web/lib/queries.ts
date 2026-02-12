@@ -24,6 +24,100 @@ export type TimelineItem = {
 
 type BaseTimelineRow = Omit<TimelineItem, "tags" | "likedByMe">;
 
+type ParsedTimelineSearchQuery = {
+  raw: string;
+  textTerms: string[];
+  tagTerms: string[];
+  langTerms: string[];
+};
+
+function normalizeSearchText(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function fuzzyIncludes(haystackRaw: string, needleRaw: string) {
+  const haystack = normalizeSearchText(haystackRaw);
+  const needle = normalizeSearchText(needleRaw);
+  if (!needle) return true;
+  if (haystack.includes(needle)) return true;
+
+  let index = 0;
+  for (const ch of needle) {
+    index = haystack.indexOf(ch, index);
+    if (index === -1) return false;
+    index += 1;
+  }
+  return true;
+}
+
+function parseTimelineSearchQuery(query?: string | null): ParsedTimelineSearchQuery | null {
+  const raw = String(query ?? "").trim();
+  if (!raw) return null;
+
+  const parsed: ParsedTimelineSearchQuery = {
+    raw,
+    textTerms: [],
+    tagTerms: [],
+    langTerms: []
+  };
+
+  for (const tokenRaw of raw.split(/\s+/)) {
+    const token = tokenRaw.trim();
+    if (!token) continue;
+
+    const lower = token.toLowerCase();
+    if (lower.startsWith("tag:")) {
+      const term = normalizeSearchText(token.slice(4));
+      if (term) parsed.tagTerms.push(term);
+      continue;
+    }
+    if (lower.startsWith("lang:")) {
+      const term = normalizeSearchText(token.slice(5));
+      if (term) parsed.langTerms.push(term);
+      continue;
+    }
+    if (lower.startsWith("language:")) {
+      const term = normalizeSearchText(token.slice(9));
+      if (term) parsed.langTerms.push(term);
+      continue;
+    }
+
+    parsed.textTerms.push(normalizeSearchText(token));
+  }
+
+  return parsed;
+}
+
+function filterTimelineByQuery(items: TimelineItem[], query?: string | null) {
+  const parsed = parseTimelineSearchQuery(query);
+  if (!parsed) return items;
+
+  return items.filter((item) => {
+    const tagValues = item.tags.map((tag) => normalizeSearchText(tag));
+    const languageValue = normalizeSearchText(item.language);
+    const searchableText = [
+      item.authorName,
+      item.authorHandle,
+      item.language,
+      item.version ?? "",
+      item.premise1,
+      item.premise2,
+      item.code,
+      item.aiSummary ?? "",
+      item.tags.join(" ")
+    ].join("\n");
+
+    const matchesTags = parsed.tagTerms.every((term) => tagValues.some((tag) => fuzzyIncludes(tag, term)));
+    if (!matchesTags) return false;
+
+    const matchesLang = parsed.langTerms.every((term) => fuzzyIncludes(languageValue, term));
+    if (!matchesLang) return false;
+
+    const matchesText = parsed.textTerms.every((term) => fuzzyIncludes(searchableText, term));
+    return matchesText;
+  });
+}
+
 function buildTagMap(rows: Array<{ postId: number; name: string }>) {
   const map = new Map<number, string[]>();
   for (const row of rows) {
@@ -91,7 +185,7 @@ async function getBaseRecentPosts(limit = 240): Promise<BaseTimelineRow[]> {
     .limit(limit);
 }
 
-export async function getRecommendedTimelinePage(userId: number | null, page: number, limit: number) {
+export async function getRecommendedTimelinePage(userId: number | null, page: number, limit: number, query?: string | null) {
   const safePage = Math.max(1, page);
   const safeLimit = Math.min(Math.max(1, limit), 50);
   const base = await getBaseRecentPosts(240);
@@ -144,11 +238,12 @@ export async function getRecommendedTimelinePage(userId: number | null, page: nu
     });
   }
 
+  const filtered = filterTimelineByQuery(ranked, query);
   const start = (safePage - 1) * safeLimit;
-  const items = ranked.slice(start, start + safeLimit);
+  const items = filtered.slice(start, start + safeLimit);
   return {
     items,
-    hasMore: start + safeLimit < ranked.length
+    hasMore: start + safeLimit < filtered.length
   };
 }
 
@@ -184,10 +279,48 @@ function calculateGuestScore(post: TimelineItem) {
   return engagement + recency * 5 + (post.id % 5) * 0.001;
 }
 
-export async function getFollowingTimelinePage(userId: number, page: number, limit: number) {
+export async function getFollowingTimelinePage(userId: number, page: number, limit: number, query?: string | null) {
   const safePage = Math.max(1, page);
   const safeLimit = Math.min(Math.max(1, limit), 50);
   const offset = (safePage - 1) * safeLimit;
+
+  const parsedQuery = parseTimelineSearchQuery(query);
+  if (parsedQuery) {
+    const base: BaseTimelineRow[] = await db
+      .select({
+        id: posts.id,
+        publicId: posts.publicId,
+        premise1: posts.premise1,
+        premise2: posts.premise2,
+        code: posts.code,
+        language: posts.language,
+        version: posts.version,
+        aiSummary: posts.aiSummary,
+        createdAt: posts.createdAt,
+        authorId: users.id,
+        authorName: users.name,
+        authorHandle: users.handle,
+        likeCount: sql<number>`cast(count(distinct ${likes.userId}) as int)`,
+        commentCount: sql<number>`cast(count(distinct ${comments.id}) as int)`
+      })
+      .from(posts)
+      .innerJoin(users, eq(posts.userId, users.id))
+      .innerJoin(follows, eq(follows.followingId, posts.userId))
+      .leftJoin(likes, eq(likes.postId, posts.id))
+      .leftJoin(comments, eq(comments.postId, posts.id))
+      .where(eq(follows.followerId, userId))
+      .groupBy(posts.id, users.id)
+      .orderBy(desc(posts.createdAt))
+      .limit(400);
+
+    const enriched = await hydrateTimeline(base, userId);
+    const filtered = filterTimelineByQuery(enriched, parsedQuery.raw);
+    const items = filtered.slice(offset, offset + safeLimit);
+    return {
+      items,
+      hasMore: offset + safeLimit < filtered.length
+    };
+  }
 
   const base: BaseTimelineRow[] = await db
     .select({
@@ -226,18 +359,20 @@ export async function getTimelinePage({
   tab,
   userId,
   page,
-  limit
+  limit,
+  query
 }: {
   tab: "for-you" | "following";
   userId: number | null;
   page: number;
   limit: number;
+  query?: string | null;
 }) {
   if (tab === "following") {
     if (!userId) return { items: [], hasMore: false };
-    return getFollowingTimelinePage(userId, page, limit);
+    return getFollowingTimelinePage(userId, page, limit, query);
   }
-  return getRecommendedTimelinePage(userId, page, limit);
+  return getRecommendedTimelinePage(userId, page, limit, query);
 }
 
 export async function getTimeline(userId?: number | null) {

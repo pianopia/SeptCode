@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, JetBrains_Mono, Manrope } from "next/font/google";
+import { BottomTabs } from "@/components/BottomTabs";
+import { getSessionUserId } from "@/lib/auth";
 import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
@@ -44,11 +46,14 @@ export const metadata: Metadata = {
   }
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const userId = await getSessionUserId();
+
   return (
     <html lang="ja">
       <body className={`${sans.variable} ${mono.variable} ${display.variable}`}>
-        <main className="mx-auto min-h-screen w-full max-w-5xl px-4 py-6 sm:px-6">{children}</main>
+        <main className="mx-auto min-h-screen w-full max-w-5xl px-4 pb-24 pt-6 sm:px-6">{children}</main>
+        <BottomTabs userId={userId} />
       </body>
     </html>
   );
