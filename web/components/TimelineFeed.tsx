@@ -16,6 +16,7 @@ type TimelinePost = {
   authorId: number;
   authorName: string;
   authorHandle: string;
+  authorAvatarUrl: string | null;
   likeCount: number;
   commentCount: number;
   tags: string[];

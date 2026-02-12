@@ -151,7 +151,7 @@ export default function PostDetailScreen() {
             <Text style={styles.premise}>{post.premise1}</Text>
             <Text style={styles.premise}>{post.premise2}</Text>
             <CodeRenderer language={post.language} code={post.code} />
-            <Text style={styles.ai}>AI: {post.aiSummary ?? "解説未生成"}</Text>
+            {/* <Text style={styles.ai}>AI: {post.aiSummary ?? "解説未生成"}</Text> */}
             <View style={styles.actionRow}>
               <Pressable onPress={() => void toggleLike()}>
                 <Text style={styles.action}>{post.likedByMe ? `♥ ${post.likeCount}` : `♡ ${post.likeCount}`}</Text>

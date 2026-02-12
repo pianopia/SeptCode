@@ -21,7 +21,11 @@ export default async function SearchPage({ searchParams }: { searchParams?: Sear
     query ? getTimelinePage({ tab: "for-you", userId, page: 1, limit: 20, query }) : Promise.resolve({ items: [], hasMore: false })
   ]);
 
-  const myAvatarUrl = me[0] ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(me[0].handle)}` : "";
+  const myAvatarUrl = me[0]
+    ? me[0].avatarUrl && me[0].avatarUrl.trim().length > 0
+      ? me[0].avatarUrl
+      : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(me[0].handle)}`
+    : "";
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
@@ -30,8 +34,9 @@ export default async function SearchPage({ searchParams }: { searchParams?: Sear
           <div className="flex min-w-0 items-end gap-2">
             <Image src="/logo.png" alt="SeptCode logo" width={36} height={36} className="mb-0.5 h-9 w-9 shrink-0" />
             <h1 className="min-w-0 truncate font-display text-3xl leading-none tracking-[0.04em] text-transparent bg-gradient-to-r from-emerald-300 via-cyan-300 to-blue-400 bg-clip-text sm:text-4xl sm:tracking-[0.06em]">
-              Search
+              SeptCode
             </h1>
+            <span className="pb-1 text-[10px] font-semibold tracking-wide text-slate-300 sm:text-xs">検索</span>
           </div>
           {me[0] ? (
             <Link
@@ -48,12 +53,12 @@ export default async function SearchPage({ searchParams }: { searchParams?: Sear
       <section className="rounded-xl border border-slate-700 bg-panel/80 p-3 sm:p-4">
         <form action="/search" method="get" className="flex flex-col gap-2 sm:flex-row">
           <input type="text" name="q" defaultValue={query} placeholder="検索: keyword / tag:react / lang:typescript" className="w-full" maxLength={120} />
-          <div className="flex gap-2">
-            <button type="submit" className="rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-slate-950">
+          <div className="flex shrink-0 gap-2">
+            <button type="submit" className="h-10 w-20 whitespace-nowrap rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-slate-950">
               検索
             </button>
             {query ? (
-              <Link href="/search" className="rounded-lg border border-slate-600 px-3 py-2 text-sm">
+              <Link href="/search" className="inline-flex h-10 w-20 items-center justify-center whitespace-nowrap rounded-lg border border-slate-600 px-3 py-2 text-sm">
                 クリア
               </Link>
             ) : null}

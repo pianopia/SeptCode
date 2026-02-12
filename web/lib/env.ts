@@ -12,6 +12,7 @@ export const env = {
   tursoUrl: process.env.TURSO_DATABASE_URL ?? "",
   tursoAuthToken: process.env.TURSO_AUTH_TOKEN ?? "",
   authSecret: process.env.AUTH_SECRET ?? "dev-secret-change-me",
+  gcsBucketName: process.env.GCS_BUCKET_NAME ?? "",
   nodeEnv: process.env.NODE_ENV ?? "development"
 };
 

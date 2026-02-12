@@ -155,12 +155,13 @@ app.get("/timeline", async (c) => {
   const tabParam = c.req.query("tab");
   const pageParam = Number(c.req.query("page") ?? "1");
   const limitParam = Number(c.req.query("limit") ?? "20");
+  const qParam = c.req.query("q");
   const tab = tabParam === "following" ? "following" : "for-you";
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
   const limit = Number.isFinite(limitParam) && limitParam > 0 ? limitParam : 20;
   const userId = c.get("userId");
 
-  const result = await getTimelinePage({ tab, userId, page, limit });
+  const result = await getTimelinePage({ tab, userId, page, limit, query: qParam });
   return c.json(result);
 });
 

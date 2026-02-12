@@ -55,3 +55,8 @@ export const deleteCommentSchema = z.object({
   commentId: z.number().int().positive(),
   postPublicId: z.string().min(1).max(64)
 });
+
+export const updateProfileSchema = z.object({
+  name: z.string().min(1).max(40),
+  bio: z.string().max(300).default("")
+});

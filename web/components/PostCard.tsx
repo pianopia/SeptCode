@@ -20,6 +20,7 @@ type TimelinePost = {
   authorId: number;
   authorName: string;
   authorHandle: string;
+  authorAvatarUrl: string | null;
   likeCount: number;
   commentCount: number;
   tags: string[];
@@ -63,7 +64,10 @@ export function PostCard({ post, canLike, viewerUserId }: { post: TimelinePost; 
     return `${Math.floor(diffMin / (60 * 24))}d ago`;
   }, [post.createdAt]);
 
-  const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(post.authorHandle)}`;
+  const avatarUrl =
+    post.authorAvatarUrl && post.authorAvatarUrl.trim().length > 0
+      ? post.authorAvatarUrl
+      : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(post.authorHandle)}`;
   const hasPreviewTarget = post.code.trim().length > 0;
   const isOwner = viewerUserId !== null && viewerUserId === post.authorId;
 

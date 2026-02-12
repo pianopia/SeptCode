@@ -32,7 +32,11 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
 
   const effectiveTab: "for-you" | "following" = tab === "following" && me[0] ? "following" : "for-you";
   const activePage = effectiveTab === "following" ? followingPage : forYouPage;
-  const myAvatarUrl = me[0] ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(me[0].handle)}` : "";
+  const myAvatarUrl = me[0]
+    ? me[0].avatarUrl && me[0].avatarUrl.trim().length > 0
+      ? me[0].avatarUrl
+      : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(me[0].handle)}`
+    : "";
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
@@ -69,18 +73,14 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
 
       </header>
 
-      {me[0] && (
+      {me[0] && effectiveTab === "following" && (
         <article className="rounded-xl border border-slate-700 bg-panel/70 px-4 py-3 text-xs text-slate-300 sm:text-sm">
-          {effectiveTab === "following" ? (
-            <div className="flex items-center justify-between gap-2">
-              <span className="truncate">フォロー中ユーザーの新着投稿を表示中。投稿は右下の「＋」からできます。</span>
-              <Link href="/?tab=for-you" className="shrink-0 rounded-full border border-slate-600 px-2.5 py-1 text-xs hover:border-slate-300">
-                おすすめへ
-              </Link>
-            </div>
-          ) : (
-            <span>おすすめ投稿を表示中。フォロー中タブではフォロー先の投稿だけを表示します。</span>
-          )}
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate">フォロー中ユーザーの新着投稿を表示中。投稿は右下の「＋」からできます。</span>
+            <Link href="/?tab=for-you" className="shrink-0 rounded-full border border-slate-600 px-2.5 py-1 text-xs hover:border-slate-300">
+              おすすめへ
+            </Link>
+          </div>
         </article>
       )}
 

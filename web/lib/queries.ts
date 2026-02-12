@@ -16,6 +16,7 @@ export type TimelineItem = {
   authorId: number;
   authorName: string;
   authorHandle: string;
+  authorAvatarUrl: string | null;
   likeCount: number;
   commentCount: number;
   tags: string[];
@@ -173,6 +174,7 @@ async function getBaseRecentPosts(limit = 240): Promise<BaseTimelineRow[]> {
       authorId: users.id,
       authorName: users.name,
       authorHandle: users.handle,
+      authorAvatarUrl: users.avatarUrl,
       likeCount: sql<number>`cast(count(distinct ${likes.userId}) as int)`,
       commentCount: sql<number>`cast(count(distinct ${comments.id}) as int)`
     })
@@ -300,6 +302,7 @@ export async function getFollowingTimelinePage(userId: number, page: number, lim
         authorId: users.id,
         authorName: users.name,
         authorHandle: users.handle,
+        authorAvatarUrl: users.avatarUrl,
         likeCount: sql<number>`cast(count(distinct ${likes.userId}) as int)`,
         commentCount: sql<number>`cast(count(distinct ${comments.id}) as int)`
       })
@@ -336,6 +339,7 @@ export async function getFollowingTimelinePage(userId: number, page: number, lim
       authorId: users.id,
       authorName: users.name,
       authorHandle: users.handle,
+      authorAvatarUrl: users.avatarUrl,
       likeCount: sql<number>`cast(count(distinct ${likes.userId}) as int)`,
       commentCount: sql<number>`cast(count(distinct ${comments.id}) as int)`
     })
@@ -437,7 +441,8 @@ export async function getPostDetail(publicId: string, userId?: number | null) {
         createdAt: posts.createdAt,
         authorId: users.id,
         authorName: users.name,
-        authorHandle: users.handle
+        authorHandle: users.handle,
+        authorAvatarUrl: users.avatarUrl
       })
       .from(posts)
       .innerJoin(users, eq(posts.userId, users.id))
@@ -485,7 +490,7 @@ export async function getProfileById(id: number, viewerId?: number | null) {
   const user = (await db.select().from(users).where(eq(users.id, id)).limit(1))[0];
   if (!user) return null;
 
-  const [followerCount, followingCount, isFollowing, userPosts] = await Promise.all([
+  const [followerCount, followingCount, isFollowing, userPostsBase] = await Promise.all([
     db.select({ value: count() }).from(follows).where(eq(follows.followingId, user.id)),
     db.select({ value: count() }).from(follows).where(eq(follows.followerId, user.id)),
     viewerId
@@ -502,19 +507,61 @@ export async function getProfileById(id: number, viewerId?: number | null) {
         premise2: posts.premise2,
         code: posts.code,
         language: posts.language,
+        version: posts.version,
+        aiSummary: posts.aiSummary,
         createdAt: posts.createdAt
       })
       .from(posts)
       .where(eq(posts.userId, user.id))
       .orderBy(desc(posts.createdAt))
   ]);
+  const userPosts = await hydrateTimeline(
+    userPostsBase.map((row) => ({
+      ...row,
+      authorId: user.id,
+      authorName: user.name,
+      authorHandle: user.handle,
+      authorAvatarUrl: user.avatarUrl ?? null,
+      likeCount: 0,
+      commentCount: 0
+    })),
+    viewerId
+  );
+
+  const postIds = userPosts.map((post) => post.id);
+  const safePostIds = postIds.length ? postIds : [-1];
+  const [likeCounts, commentCounts] = await Promise.all([
+    db
+      .select({
+        postId: likes.postId,
+        count: sql<number>`cast(count(*) as int)`
+      })
+      .from(likes)
+      .where(inArray(likes.postId, safePostIds))
+      .groupBy(likes.postId),
+    db
+      .select({
+        postId: comments.postId,
+        count: sql<number>`cast(count(*) as int)`
+      })
+      .from(comments)
+      .where(inArray(comments.postId, safePostIds))
+      .groupBy(comments.postId)
+  ]);
+
+  const likeCountMap = new Map(likeCounts.map((x) => [x.postId, x.count]));
+  const commentCountMap = new Map(commentCounts.map((x) => [x.postId, x.count]));
 
   return {
     ...user,
     followerCount: followerCount[0]?.value ?? 0,
     followingCount: followingCount[0]?.value ?? 0,
     isFollowing: isFollowing.length > 0,
-    posts: userPosts
+    posts: userPosts.map((post) => ({
+      ...post,
+      likeCount: likeCountMap.get(post.id) ?? 0,
+      commentCount: commentCountMap.get(post.id) ?? 0
+    }))
   };
 }
 

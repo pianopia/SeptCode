@@ -19,6 +19,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="search"
+        options={{
+          title: "検索",
+          tabBarIcon: ({ color, size }) => <Ionicons name="search-outline" color={color} size={size} />
+        }}
+      />
+      <Tabs.Screen
         name="compose"
         options={{
           title: "投稿",
@@ -29,7 +36,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="me"
         options={{
-          title: "アカウント",
+          title: "マイページ",
           tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" color={color} size={size} />
         }}
       />

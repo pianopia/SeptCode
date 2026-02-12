@@ -9,7 +9,8 @@ import { clearSession, comparePassword, getSessionUserId, hashPassword, setSessi
 import { db } from "@/lib/db";
 import { buildInvalidPostRedirect, resolveCreatePostErrorMessage } from "@/lib/post-errors";
 import { buildPremiseTextFromFormValues } from "@/lib/premise";
-import { commentSchema, createPostSchema, deleteCommentSchema, loginSchema, registerSchema } from "@/lib/validators";
+import { uploadAvatarImage } from "@/lib/storage";
+import { commentSchema, createPostSchema, deleteCommentSchema, loginSchema, registerSchema, updateProfileSchema } from "@/lib/validators";
 
 function hasIntent(formData: FormData, expected: string) {
   return formData.get("intent") === expected;
@@ -325,4 +326,42 @@ export async function toggleFollowAction(formData: FormData) {
   }
 
   revalidatePath(`/u/${targetUserId}`);
+}
+
+export async function updateProfileAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  if (!userId) redirect("/login");
+  if (!hasIntent(formData, "update_profile")) redirect("/");
+
+  const parsed = updateProfileSchema.safeParse({
+    name: String(formData.get("name") ?? ""),
+    bio: String(formData.get("bio") ?? "")
+  });
+  if (!parsed.success) redirect(`/u/${userId}?error=invalid_profile`);
+
+  const rawAvatar = formData.get("avatar");
+  const avatar = rawAvatar instanceof File ? rawAvatar : null;
+
+  let avatarUrl: string | undefined;
+  if (avatar && avatar.size > 0) {
+    try {
+      avatarUrl = await uploadAvatarImage(userId, avatar);
+    } catch {
+      redirect(`/u/${userId}?error=invalid_avatar`);
+    }
+  }
+
+  await db
+    .update(users)
+    .set({
+      name: parsed.data.name.trim(),
+      bio: parsed.data.bio.trim(),
+      ...(avatarUrl ? { avatarUrl } : {})
+    })
+    .where(eq(users.id, userId));
+
+  revalidatePath("/");
+  revalidatePath("/search");
+  revalidatePath(`/u/${userId}`);
+  redirect(`/u/${userId}`);
 }

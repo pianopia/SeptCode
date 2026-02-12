@@ -11,6 +11,7 @@
     "db:push": "bunx drizzle-kit push"
   },
   "dependencies": {
+    "@google-cloud/storage": "^7.19.0",
     "@libsql/client": "^0.15.7",
     "@septcode/db": "workspace:*",
     "bcryptjs": "^2.4.3",
