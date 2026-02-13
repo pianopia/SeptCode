@@ -21,28 +21,28 @@ type TimelinePost = {
   authorName: string;
   authorHandle: string;
   authorAvatarUrl: string | null;
+  authorProfileLanguages: string[];
   likeCount: number;
   commentCount: number;
   tags: string[];
   likedByMe: boolean;
 };
 
-export function PostCard({ post, canLike, viewerUserId }: { post: TimelinePost; canLike: boolean; viewerUserId: number | null }) {
+export function PostCard({
+  post,
+  canLike,
+  viewerUserId,
+  returnTo
+}: {
+  post: TimelinePost;
+  canLike: boolean;
+  viewerUserId: number | null;
+  returnTo?: string;
+}) {
   // const [showAiAnalysis, setShowAiAnalysis] = useState(false);
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-
-  const langClass = useMemo(() => {
-    const l = post.language.toLowerCase();
-    if (l.includes("react") || l.includes("typescript") || l.includes("javascript")) {
-      return "text-blue-400 bg-blue-500/10 border-blue-500/20";
-    }
-    if (l.includes("python")) return "text-yellow-400 bg-yellow-500/10 border-yellow-500/20";
-    if (l.includes("rust")) return "text-orange-400 bg-orange-500/10 border-orange-500/20";
-    if (l.includes("shell") || l.includes("bash")) return "text-green-400 bg-green-500/10 border-green-500/20";
-    return "text-purple-400 bg-purple-500/10 border-purple-500/20";
-  }, [post.language]);
 
   const previewGradient = useMemo(() => {
     const l = post.language.toLowerCase();
@@ -68,6 +68,7 @@ export function PostCard({ post, canLike, viewerUserId }: { post: TimelinePost; 
     post.authorAvatarUrl && post.authorAvatarUrl.trim().length > 0
       ? post.authorAvatarUrl
       : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(post.authorHandle)}`;
+  const profileLangs = post.authorProfileLanguages.slice(0, 3);
   const hasPreviewTarget = post.code.trim().length > 0;
   const isOwner = viewerUserId !== null && viewerUserId === post.authorId;
 
@@ -109,7 +110,15 @@ export function PostCard({ post, canLike, viewerUserId }: { post: TimelinePost; 
               <span className="text-xs text-slate-500">@{post.authorHandle}</span>
             </div>
             <div className="mt-1 flex items-center gap-2">
-              <span className={`inline-block rounded border px-2 py-0.5 text-[10px] font-mono ${langClass}`}>{post.language}</span>
+              {profileLangs.length > 0 ? (
+                profileLangs.map((lang) => (
+                  <span key={lang} className="inline-block rounded border border-slate-600 px-2 py-0.5 text-[10px] font-mono text-slate-300">
+                    {lang}
+                  </span>
+                ))
+              ) : (
+                <span className="inline-block rounded border border-slate-700 px-2 py-0.5 text-[10px] font-mono text-slate-500">言語未設定</span>
+              )}
               <span className="text-[10px] text-slate-600">{timeText}</span>
             </div>
           </div>
@@ -136,6 +145,7 @@ export function PostCard({ post, canLike, viewerUserId }: { post: TimelinePost; 
                 <form action={deletePostAction}>
                   <input type="hidden" name="intent" value="delete_post" />
                   <input type="hidden" name="postPublicId" value={post.publicId} />
+                  {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
                   <button type="submit" className="w-full rounded-md px-3 py-2 text-left text-rose-300 hover:bg-rose-500/10">
                     削除する
                   </button>

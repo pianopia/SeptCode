@@ -75,6 +75,7 @@ export default async function SearchPage({ searchParams }: { searchParams?: Sear
           query={query}
           canLike={Boolean(me[0])}
           viewerUserId={me[0]?.id ?? null}
+          returnTo={`/search?q=${encodeURIComponent(query)}`}
           emptyMessage="条件に一致する投稿が見つかりません。"
         />
       ) : (

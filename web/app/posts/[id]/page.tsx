@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { addCommentAction, deleteCommentAction, toggleLikeAction } from "@/app/actions";
 import { CodeRenderer } from "@/components/CodeRenderer";
+import { PostOwnerMenu } from "@/components/PostOwnerMenu";
 import { getSessionUserId } from "@/lib/auth";
 import { getPostDetail } from "@/lib/queries";
 import { getSiteUrl } from "@/lib/site-url";
@@ -26,7 +27,6 @@ export async function generateMetadata({
   const siteUrl = getSiteUrl();
   const description = [post.premise1, post.premise2].filter(Boolean).join(" ").slice(0, 140);
   const url = `${siteUrl}/posts/${post.publicId}`;
-  const ogImage = `${siteUrl}/logo.png`;
   const title = `${post.authorHandle} の投稿 | SeptCode`;
 
   return {
@@ -44,21 +44,12 @@ export async function generateMetadata({
       description,
       url,
       type: "article",
-      siteName: "SeptCode",
-      images: [
-        {
-          url: ogImage,
-          width: 1200,
-          height: 630,
-          alt: "SeptCode"
-        }
-      ]
+      siteName: "SeptCode"
     },
     twitter: {
       card: "summary_large_image",
       title,
-      description,
-      images: [ogImage]
+      description
     }
   };
 }
@@ -71,6 +62,7 @@ export default async function PostDetailPage({
   const userId = await getSessionUserId();
   const post = await getPostDetail(params.id, userId);
   if (!post) notFound();
+  const isOwner = userId !== null && userId === post.authorId;
 
   return (
     <div className="space-y-4">
@@ -79,12 +71,15 @@ export default async function PostDetailPage({
       </Link>
 
       <article className="rounded-xl border border-slate-700 bg-panel/90 p-4">
-        <h1 className="text-xl font-bold">
-          <Link href={`/u/${post.authorId}`} className="hover:text-accent2">
-            @{post.authorHandle}
-          </Link>{" "}
-          の投稿
-        </h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="text-xl font-bold">
+            <Link href={`/u/${post.authorId}`} className="hover:text-accent2">
+              @{post.authorHandle}
+            </Link>{" "}
+            の投稿
+          </h1>
+          {isOwner ? <PostOwnerMenu postPublicId={post.publicId} /> : null}
+        </div>
         <div className="mt-3">
           <CodeRenderer language={post.language} code={post.code} />
         </div>
@@ -115,9 +110,8 @@ export default async function PostDetailPage({
           <button
             type="submit"
             disabled={!userId}
-            className={`rounded-lg border px-3 py-1 text-sm ${
-              post.likedByMe ? "border-pink-400 text-pink-300" : "border-slate-600 text-slate-200"
-            } disabled:opacity-40`}
+            className={`rounded-lg border px-3 py-1 text-sm ${post.likedByMe ? "border-pink-400 text-pink-300" : "border-slate-600 text-slate-200"
+              } disabled:opacity-40`}
           >
             いいね {post.likeCount}
           </button>

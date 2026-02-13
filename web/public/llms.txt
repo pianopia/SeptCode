@@ -1,0 +1,26 @@
+# SeptCode Web (LLMs)
+
+This file provides a compact index for language models and agents.
+
+## Site
+- Name: SeptCode Web
+- Type: Next.js 14 web client
+- Primary language: Japanese
+
+## Main Routes
+- `/` : Timeline / home
+- `/login` : Login page
+- `/register` : Registration page
+- `/search` : User/content search
+- `/u/{id}` : User profile
+- `/posts/{id}` : Post detail
+- `/posts/{id}/edit` : Post edit
+
+## Public API Endpoints
+- `/api/health` : Health check
+- `/api/timeline` : Timeline data
+
+## Discovery
+- `/robots.txt`
+- `/sitemap.xml`
+- Full reference: `/llms-full.txt`

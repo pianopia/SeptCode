@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
 import { createPostAction } from "@/app/actions";
+import { PostCodeTextarea } from "@/components/PostCodeTextarea";
 import { COMPOSER_MASTER } from "@septcode/db/composer-master";
 
 type ComposerSuggestions = {
@@ -25,6 +26,7 @@ export function PostComposer({
   suggestions?: ComposerSuggestions;
 }) {
   const [code, setCode] = useState("");
+  const [language, setLanguage] = useState("");
   const lineCount = useMemo(() => (code.length ? code.split("\n").length : 1), [code]);
   const overLimit = lineCount > 7;
   const items = suggestions ?? DEFAULT_SUGGESTIONS;
@@ -34,37 +36,32 @@ export function PostComposer({
       {!compact && <h2 className="mb-3 text-lg font-semibold">新規投稿</h2>}
       <form action={createPostAction} className="space-y-3">
         <input type="hidden" name="intent" value="create_post" />
-        <div className="overflow-hidden rounded-xl border border-slate-700 bg-[#0d1117]">
-          <div className="grid grid-cols-[44px_1fr]">
-            <div className="select-none border-r border-slate-800 bg-slate-900/70 py-3 text-center font-mono text-xs leading-6 text-slate-600">
-              {Array.from({ length: Math.max(7, lineCount) }).map((_, i) => (
-                <div key={i} className={i >= 7 ? "bg-rose-500/10 font-bold text-rose-400" : ""}>
-                  {i + 1}
-                </div>
-              ))}
-            </div>
-            <textarea
-              name="code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="// 7行以内のコード"
-              required
-              rows={7}
-              className={`min-h-44 w-full resize-y border-0 bg-transparent px-3 py-3 font-mono text-sm leading-6 focus:outline-none ${
-                overLimit ? "text-rose-300" : "text-slate-200"
-              }`}
-            />
-          </div>
-          <div className="flex items-center justify-between border-t border-slate-800 px-3 py-2 text-xs">
+        <div>
+          <PostCodeTextarea
+            name="code"
+            value={code}
+            onValueChange={setCode}
+            language={language}
+            placeholder="// 7行以内（各行200文字以内）のコード"
+            required
+            rows={7}
+          />
+          <div className="mt-1.5 flex items-center justify-between px-1 text-xs">
             <span className="inline-flex items-center gap-1 text-slate-400">
-              <Sparkles className="h-3.5 w-3.5" /> Mermaid は language に `Mermaid` を指定
+              <Sparkles className="h-3.5 w-3.5" /> 7行以内・各行200文字以内。Mermaid は language に `Mermaid` を指定
             </span>
             <span className={overLimit ? "font-semibold text-rose-400" : "text-slate-400"}>{lineCount} / 7 lines</span>
           </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
-          <input name="language" placeholder="language (optional)" list="language-suggestions" />
+          <input
+            name="language"
+            placeholder="language (optional)"
+            list="language-suggestions"
+            value={language}
+            onChange={(e) => setLanguage(e.currentTarget.value)}
+          />
           <input name="version" placeholder="version (optional)" list="version-suggestions" />
           <input name="tags" placeholder="tags (comma separated)" list="tag-suggestions" />
         </div>

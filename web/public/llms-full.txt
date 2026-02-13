@@ -1,0 +1,39 @@
+# SeptCode Web (LLMs Full Reference)
+
+This document is a fuller machine-readable guide for agents interacting with SeptCode Web.
+
+## 1. Product Summary
+- Product: SeptCode Web
+- Framework: Next.js 14 (App Router)
+- Purpose: Social/timeline style web client with user profiles and posts
+
+## 2. Key User Flows
+- Authentication:
+  - `GET /login`
+  - `GET /register`
+- Timeline and discovery:
+  - `GET /`
+  - `GET /search`
+- Profile:
+  - `GET /u/{id}`
+- Posts:
+  - `GET /posts/{id}`
+  - `GET /posts/{id}/edit`
+
+## 3. API Endpoints
+- `GET /api/health`
+  - Intended for health checks and uptime probes.
+- `GET /api/timeline`
+  - Returns timeline data for the client.
+
+## 4. Crawling/Indexing Aids
+- `GET /robots.txt`
+- `GET /sitemap.xml`
+
+## 5. Notes for LLM Agents
+- Prefer Japanese for end-user output unless explicitly requested otherwise.
+- Treat dynamic endpoints as application routes, not static documentation.
+- Use `/api/health` first when checking service availability.
+
+## 6. Compact Reference
+- Summary file: `/llms.txt`

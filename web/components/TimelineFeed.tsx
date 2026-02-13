@@ -17,6 +17,7 @@ type TimelinePost = {
   authorName: string;
   authorHandle: string;
   authorAvatarUrl: string | null;
+  authorProfileLanguages: string[];
   likeCount: number;
   commentCount: number;
   tags: string[];
@@ -30,7 +31,8 @@ export function TimelineFeed({
   query,
   canLike,
   viewerUserId,
-  emptyMessage
+  emptyMessage,
+  returnTo
 }: {
   initialItems: TimelinePost[];
   initialHasMore: boolean;
@@ -39,6 +41,7 @@ export function TimelineFeed({
   canLike: boolean;
   viewerUserId: number | null;
   emptyMessage: string;
+  returnTo?: string;
 }) {
   const [items, setItems] = useState(initialItems);
   const [page, setPage] = useState(1);
@@ -92,7 +95,7 @@ export function TimelineFeed({
   return (
     <section className="space-y-3">
       {items.map((post) => (
-        <PostCard key={`${post.publicId}-${post.id}`} post={post} canLike={canLike} viewerUserId={viewerUserId} />
+        <PostCard key={`${post.publicId}-${post.id}`} post={post} canLike={canLike} viewerUserId={viewerUserId} returnTo={returnTo} />
       ))}
 
       {isEmpty && <article className="rounded-xl border border-slate-700 bg-panel/70 p-5 text-sm text-slate-300">{emptyMessage}</article>}

@@ -40,6 +40,17 @@ export default async function UserProfilePage({ params, searchParams }: { params
           </div>
         </div>
         <p className="mt-2 text-sm text-slate-300">{profile.bio || "自己紹介はまだありません。"}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {profile.profileLanguages.length > 0 ? (
+            profile.profileLanguages.map((lang: string) => (
+              <span key={lang} className="rounded-full border border-slate-600 px-2 py-1 text-xs text-slate-200">
+                {lang}
+              </span>
+            ))
+          ) : (
+            <span className="text-xs text-slate-500">扱う言語は未設定です。</span>
+          )}
+        </div>
 
         <div className="mt-3 flex items-center gap-4 text-sm text-slate-300">
           <span>{profile.followerCount} followers</span>
@@ -65,7 +76,9 @@ export default async function UserProfilePage({ params, searchParams }: { params
           <div className="mt-4 space-y-3 rounded-lg border border-slate-700 bg-slate-900/60 p-3">
             <h2 className="text-sm font-semibold text-slate-200">プロフィール編集</h2>
             {rawError === "invalid_profile" && (
-              <p className="text-xs text-rose-300">プロフィールの入力内容が不正です。名前は1〜40文字、自己紹介は300文字以内です。</p>
+              <p className="text-xs text-rose-300">
+                プロフィールの入力内容が不正です。名前は1〜40文字、自己紹介は300文字以内、扱う言語は200文字以内にしてください。
+              </p>
             )}
             {rawError === "invalid_avatar" && (
               <p className="text-xs text-rose-300">アイコン画像のアップロードに失敗しました。jpg/png/webp/gif（5MB以内）を指定してください。</p>
@@ -80,6 +93,15 @@ export default async function UserProfilePage({ params, searchParams }: { params
               <div>
                 <label className="mb-1 block text-xs text-slate-300">自己紹介</label>
                 <textarea name="bio" defaultValue={profile.bio ?? ""} rows={4} maxLength={300} className="w-full" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-slate-300">扱う言語（カンマ区切り）</label>
+                <input
+                  name="profileLanguages"
+                  defaultValue={(profile.profileLanguages ?? []).join(", ")}
+                  maxLength={200}
+                  placeholder="TypeScript, Rust, Python"
+                />
               </div>
               <div>
                 <label className="mb-1 block text-xs text-slate-300">アイコン画像（Cloud Storage）</label>

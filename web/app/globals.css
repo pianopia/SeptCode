@@ -30,3 +30,8 @@ select {
 button {
   @apply transition;
 }
+
+.code-no-ligatures {
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+}

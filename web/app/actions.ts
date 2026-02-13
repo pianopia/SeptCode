@@ -9,6 +9,7 @@ import { clearSession, comparePassword, getSessionUserId, hashPassword, setSessi
 import { db } from "@/lib/db";
 import { buildInvalidPostRedirect, resolveCreatePostErrorMessage } from "@/lib/post-errors";
 import { buildPremiseTextFromFormValues } from "@/lib/premise";
+import { serializeProfileLanguages } from "@/lib/profile-languages";
 import { uploadAvatarImage } from "@/lib/storage";
 import { commentSchema, createPostSchema, deleteCommentSchema, loginSchema, registerSchema, updateProfileSchema } from "@/lib/validators";
 
@@ -235,10 +236,17 @@ export async function deletePostAction(formData: FormData) {
   )[0];
   if (!existing || existing.userId !== userId) redirect(`/posts/${postPublicId}`);
 
+  const rawReturnTo = String(formData.get("returnTo") ?? "");
+  const returnTo =
+    rawReturnTo.startsWith("/") && !rawReturnTo.startsWith("//") && !rawReturnTo.startsWith("/\\")
+      ? rawReturnTo
+      : "/";
+
   await db.delete(posts).where(eq(posts.id, existing.id));
   revalidatePath("/");
+  if (returnTo.startsWith("/search")) revalidatePath("/search");
   revalidatePath(`/u/${userId}`);
-  redirect("/");
+  redirect(returnTo);
 }
 
 export async function toggleLikeAction(formData: FormData) {
@@ -335,7 +343,8 @@ export async function updateProfileAction(formData: FormData) {
 
   const parsed = updateProfileSchema.safeParse({
     name: String(formData.get("name") ?? ""),
-    bio: String(formData.get("bio") ?? "")
+    bio: String(formData.get("bio") ?? ""),
+    profileLanguages: String(formData.get("profileLanguages") ?? "")
   });
   if (!parsed.success) redirect(`/u/${userId}?error=invalid_profile`);
 
@@ -356,6 +365,7 @@ export async function updateProfileAction(formData: FormData) {
     .set({
       name: parsed.data.name.trim(),
       bio: parsed.data.bio.trim(),
+      profileLanguages: serializeProfileLanguages(parsed.data.profileLanguages),
       ...(avatarUrl ? { avatarUrl } : {})
     })
     .where(eq(users.id, userId));

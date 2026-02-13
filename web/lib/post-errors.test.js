@@ -61,4 +61,29 @@ describe("post error helpers", () => {
     });
     expect(parsed.success).toBe(true);
   });
+
+  it("allows up to 200 chars per code line", () => {
+    const parsed = createPostSchema.safeParse({
+      premiseText: "",
+      code: "a".repeat(200),
+      language: "TypeScript",
+      version: "latest",
+      tags: ""
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("rejects code lines longer than 200 chars", () => {
+    const parsed = createPostSchema.safeParse({
+      premiseText: "",
+      code: "a".repeat(201),
+      language: "TypeScript",
+      version: "latest",
+      tags: ""
+    });
+    expect(parsed.success).toBe(false);
+
+    if (parsed.success) return;
+    expect(resolveCreatePostErrorMessage(parsed.error)).toBe("コードの各行は200文字以内にしてください");
+  });
 });

@@ -121,8 +121,8 @@ export function CodeRenderer({ language, code }: { language: string; code: strin
   }
 
   return (
-    <pre className="overflow-x-auto rounded-lg border border-slate-700 bg-slate-950 p-3 text-xs leading-relaxed sm:text-sm">
-      <code ref={codeRef} className={`hljs language-${normalizeLang(language) ?? ""}`} />
+    <pre className="code-no-ligatures overflow-x-auto rounded-lg border border-slate-700 bg-slate-950 p-3 text-xs leading-relaxed sm:text-sm">
+      <code ref={codeRef} className={`code-no-ligatures hljs language-${normalizeLang(language) ?? ""}`} />
     </pre>
   );
 }

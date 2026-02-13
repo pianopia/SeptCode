@@ -97,6 +97,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
         query=""
         canLike={Boolean(me[0])}
         viewerUserId={me[0]?.id ?? null}
+        returnTo={effectiveTab === "following" ? "/?tab=following" : "/"}
         emptyMessage={
           effectiveTab === "following"
             ? "まだフォロー中ユーザーの投稿がありません。ユーザープロフィールからフォローしてみてください。"

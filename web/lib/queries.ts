@@ -2,6 +2,7 @@ import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { comments, follows, likes, postTags, posts, tags, users } from "@septcode/db/schema";
 import { COMPOSER_MASTER } from "@septcode/db/composer-master";
 import { db } from "@/lib/db";
+import { parseProfileLanguages } from "@/lib/profile-languages";
 
 export type TimelineItem = {
   id: number;
@@ -17,13 +18,16 @@ export type TimelineItem = {
   authorName: string;
   authorHandle: string;
   authorAvatarUrl: string | null;
+  authorProfileLanguages: string[];
   likeCount: number;
   commentCount: number;
   tags: string[];
   likedByMe: boolean;
 };
 
-type BaseTimelineRow = Omit<TimelineItem, "tags" | "likedByMe">;
+type BaseTimelineRow = Omit<TimelineItem, "tags" | "likedByMe" | "authorProfileLanguages"> & {
+  authorProfileLanguagesRaw: string | null;
+};
 
 type ParsedTimelineSearchQuery = {
   raw: string;
@@ -154,6 +158,7 @@ async function hydrateTimeline(base: BaseTimelineRow[], userId?: number | null):
 
   return base.map((row) => ({
     ...row,
+    authorProfileLanguages: parseProfileLanguages(row.authorProfileLanguagesRaw),
     tags: tagMap.get(row.id) ?? [],
     likedByMe: likedSet.has(row.id)
   }));
@@ -175,6 +180,7 @@ async function getBaseRecentPosts(limit = 240): Promise<BaseTimelineRow[]> {
       authorName: users.name,
       authorHandle: users.handle,
       authorAvatarUrl: users.avatarUrl,
+      authorProfileLanguagesRaw: users.profileLanguages,
       likeCount: sql<number>`cast(count(distinct ${likes.userId}) as int)`,
       commentCount: sql<number>`cast(count(distinct ${comments.id}) as int)`
     })
@@ -303,6 +309,7 @@ export async function getFollowingTimelinePage(userId: number, page: number, lim
         authorName: users.name,
         authorHandle: users.handle,
         authorAvatarUrl: users.avatarUrl,
+        authorProfileLanguagesRaw: users.profileLanguages,
         likeCount: sql<number>`cast(count(distinct ${likes.userId}) as int)`,
         commentCount: sql<number>`cast(count(distinct ${comments.id}) as int)`
       })
@@ -340,6 +347,7 @@ export async function getFollowingTimelinePage(userId: number, page: number, lim
       authorName: users.name,
       authorHandle: users.handle,
       authorAvatarUrl: users.avatarUrl,
+      authorProfileLanguagesRaw: users.profileLanguages,
       likeCount: sql<number>`cast(count(distinct ${likes.userId}) as int)`,
       commentCount: sql<number>`cast(count(distinct ${comments.id}) as int)`
     })
@@ -441,9 +449,10 @@ export async function getPostDetail(publicId: string, userId?: number | null) {
         createdAt: posts.createdAt,
         authorId: users.id,
         authorName: users.name,
-        authorHandle: users.handle,
-        authorAvatarUrl: users.avatarUrl
-      })
+      authorHandle: users.handle,
+      authorAvatarUrl: users.avatarUrl,
+      authorProfileLanguagesRaw: users.profileLanguages
+    })
       .from(posts)
       .innerJoin(users, eq(posts.userId, users.id))
       .where(eq(posts.publicId, publicId))
@@ -522,6 +531,7 @@ export async function getProfileById(id: number, viewerId?: number | null) {
       authorName: user.name,
       authorHandle: user.handle,
       authorAvatarUrl: user.avatarUrl ?? null,
+      authorProfileLanguagesRaw: user.profileLanguages ?? "",
       likeCount: 0,
       commentCount: 0
     })),
@@ -554,6 +564,7 @@ export async function getProfileById(id: number, viewerId?: number | null) {
 
   return {
     ...user,
+    profileLanguages: parseProfileLanguages(user.profileLanguages ?? ""),
     followerCount: followerCount[0]?.value ?? 0,
     followingCount: followingCount[0]?.value ?? 0,
     isFollowing: isFollowing.length > 0,

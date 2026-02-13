@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { updatePostAction } from "@/app/actions";
+import { PostEditForm } from "@/components/PostEditForm";
 import { getSessionUserId } from "@/lib/auth";
 import { getPostDetail } from "@/lib/queries";
 import { DEFAULT_POST_ERROR_MESSAGE } from "@/lib/post-errors";
@@ -40,33 +40,14 @@ export default async function PostEditPage({
 
       {rawError === "invalid_post" && <p className="mb-3 text-sm text-rose-300">更新に失敗しました: {postErrorMessage}</p>}
 
-      <form action={updatePostAction} className="space-y-3">
-        <input type="hidden" name="intent" value="update_post" />
-        <input type="hidden" name="postPublicId" value={post.publicId} />
-
-        <textarea name="code" defaultValue={post.code} required rows={7} className="w-full font-mono" />
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          <input name="language" defaultValue={post.language} placeholder="language (optional)" />
-          <input name="version" defaultValue={post.version ?? ""} placeholder="version (optional)" />
-          <input name="tags" defaultValue={post.tags.join(", ")} placeholder="tags (comma separated)" />
-        </div>
-
-        <div className="grid gap-2">
-          <textarea
-            name="premiseText"
-            defaultValue={premiseText}
-            placeholder={"前提文を2行で入力\n例: 処理対象は10万件\n例: 1秒以内で返す必要あり"}
-            rows={3}
-            className="w-full resize-y"
-          />
-          <p className="text-xs text-slate-400">前提文は任意入力です（最大2行、各140文字以内）。</p>
-        </div>
-
-        <button type="submit" className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-slate-950">
-          更新する
-        </button>
-      </form>
+      <PostEditForm
+        postPublicId={post.publicId}
+        initialCode={post.code}
+        initialLanguage={post.language}
+        initialVersion={post.version ?? ""}
+        initialTags={post.tags.join(", ")}
+        initialPremiseText={premiseText}
+      />
     </section>
   );
 }
