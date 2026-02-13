@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { parseDbTimestamp } from "@/lib/datetime";
 import { getPostSitemapEntries } from "@/lib/queries";
 import { getSiteUrl } from "@/lib/site-url";
 
@@ -16,11 +17,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const postPages: MetadataRoute.Sitemap = posts.map((post) => ({
     url: `${siteUrl}/posts/${post.publicId}`,
-    lastModified: new Date(post.createdAt),
+    lastModified: parseDbTimestamp(post.createdAt),
     changeFrequency: "weekly",
     priority: 0.8
   }));
 
   return [...staticPages, ...postPages];
 }
-

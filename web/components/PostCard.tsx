@@ -6,6 +6,7 @@ import { Copy, Hash, Heart, MessageCircle, MoreHorizontal, Share2, Terminal } fr
 // import { Sparkles } from "lucide-react";
 import { deletePostAction, toggleLikeAction } from "@/app/actions";
 import { CodeRenderer } from "@/components/CodeRenderer";
+import { parseDbTimestamp } from "@/lib/datetime";
 
 type TimelinePost = {
   id: number;
@@ -56,7 +57,7 @@ export function PostCard({
   }, [post.language]);
 
   const timeText = useMemo(() => {
-    const created = new Date(post.createdAt);
+    const created = parseDbTimestamp(post.createdAt);
     if (Number.isNaN(created.getTime())) return "just now";
     const diffMin = Math.floor((Date.now() - created.getTime()) / 60000);
     if (diffMin < 60) return `${Math.max(diffMin, 1)}m ago`;

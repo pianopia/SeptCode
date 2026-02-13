@@ -2,6 +2,7 @@ import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { comments, follows, likes, postTags, posts, tags, users } from "@septcode/db/schema";
 import { COMPOSER_MASTER } from "@septcode/db/composer-master";
 import { db } from "@/lib/db";
+import { parseDbTimestamp } from "@/lib/datetime";
 import { parseProfileLanguages } from "@/lib/profile-languages";
 
 export type TimelineItem = {
@@ -262,7 +263,7 @@ function calculateRecommendationScore(
   followedSet: Set<number>
 ) {
   const now = Date.now();
-  const created = new Date(post.createdAt).getTime();
+  const created = parseDbTimestamp(post.createdAt).getTime();
   const ageHours = Number.isFinite(created) ? Math.max(0, (now - created) / 36e5) : 999;
   const recency = Math.max(0, 72 - ageHours) / 72;
 
@@ -280,7 +281,7 @@ function calculateRecommendationScore(
 
 function calculateGuestScore(post: TimelineItem) {
   const now = Date.now();
-  const created = new Date(post.createdAt).getTime();
+  const created = parseDbTimestamp(post.createdAt).getTime();
   const ageHours = Number.isFinite(created) ? Math.max(0, (now - created) / 36e5) : 999;
   const recency = Math.max(0, 72 - ageHours) / 72;
   const engagement = post.likeCount * 0.8 + post.commentCount * 1.2;
