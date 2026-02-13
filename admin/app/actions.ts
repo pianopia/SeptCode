@@ -7,6 +7,7 @@ import { tags } from "@septcode/db/schema";
 import { clearAdminSession, isAdminAuthenticated, setAdminSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
+import { createAutomatedOfficialPost } from "@/lib/official-post";
 import { adminLoginSchema, createMasterSchema, deleteMasterSchema, updateMasterSchema } from "@/lib/validators";
 
 function normalizeName(name: string) {
@@ -115,4 +116,28 @@ export async function deleteMasterAction(formData: FormData) {
   revalidatePath("/masters");
   revalidatePath("/");
   redirect("/masters");
+}
+
+export async function runOfficialAutoPostAction(formData: FormData) {
+  await requireAdminAuth();
+
+  const force = String(formData.get("force") ?? "1") === "1";
+
+  try {
+    const result = await createAutomatedOfficialPost({ source: "manual", force });
+    revalidatePath("/");
+    revalidatePath("/official-posts");
+
+    const query = new URLSearchParams({ status: result.status });
+    if (result.status === "created") {
+      query.set("publicId", result.publicId);
+      query.set("language", result.language);
+    } else {
+      query.set("reason", result.reason);
+      query.set("nextRunAt", result.nextRunAt);
+    }
+    redirect(`/official-posts?${query.toString()}`);
+  } catch {
+    redirect("/official-posts?status=error");
+  }
 }

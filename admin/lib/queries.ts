@@ -1,6 +1,7 @@
-import { desc, sql } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { comments, posts, tags, users } from "@septcode/db/schema";
 import { db } from "@/lib/db";
+import { env } from "@/lib/env";
 
 export async function getDashboardSummary() {
   const [userCount, postCount, tagCount, commentCount, recentUsers, recentPosts] = await Promise.all([
@@ -58,4 +59,32 @@ export async function getUsersForAdmin() {
     .orderBy(desc(users.createdAt));
 
   return rows;
+}
+
+export async function getOfficialPostsForAdmin(limit = 20) {
+  const safeLimit = Math.min(Math.max(1, limit), 100);
+
+  const rows = await db
+    .select({
+      id: posts.id,
+      publicId: posts.publicId,
+      premise1: posts.premise1,
+      premise2: posts.premise2,
+      language: posts.language,
+      version: posts.version,
+      code: posts.code,
+      createdAt: posts.createdAt,
+      authorName: users.name,
+      authorHandle: users.handle
+    })
+    .from(posts)
+    .innerJoin(users, eq(posts.userId, users.id))
+    .where(eq(users.handle, env.officialPostHandle))
+    .orderBy(desc(posts.createdAt))
+    .limit(safeLimit);
+
+  return rows.map((row) => ({
+    ...row,
+    lineCount: row.code.split("\n").filter((line) => line.trim().length > 0).length
+  }));
 }

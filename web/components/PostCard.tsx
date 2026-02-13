@@ -163,7 +163,12 @@ export function PostCard({
 
       <div className="relative bg-[#0d1117]">
         <div className="px-4 py-5">
-          <CodeRenderer language={post.language} code={post.code} />
+          <div className="relative">
+            <span className="pointer-events-none absolute left-3 top-0 z-10 -translate-y-1/2 rounded-md border border-slate-700 bg-slate-800/85 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-200 backdrop-blur-sm">
+              {post.language}
+            </span>
+            <CodeRenderer language={post.language} code={post.code} />
+          </div>
         </div>
         <button
           type="button"

@@ -29,6 +29,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link href="/users" className="block rounded-lg px-3 py-2 hover:bg-slate-100">
             ユーザー一覧
           </Link>
+          <Link href="/official-posts" className="block rounded-lg px-3 py-2 hover:bg-slate-100">
+            運営公式投稿
+          </Link>
         </nav>
 
         <form action={adminLogoutAction} className="mt-8">

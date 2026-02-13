@@ -14,6 +14,11 @@ export const env = {
   authSecret: process.env.AUTH_SECRET ?? "dev-secret-change-me",
   adminLoginId: process.env.ADMIN_LOGIN_ID ?? "",
   adminLoginPassword: process.env.ADMIN_LOGIN_PASSWORD ?? "",
+  officialPostName: process.env.OFFICIAL_POST_NAME ?? "SEPTCODE公式",
+  officialPostHandle: process.env.OFFICIAL_POST_HANDLE ?? "septcode_official",
+  officialPostEmail: process.env.OFFICIAL_POST_EMAIL ?? "official@septcode.local",
+  officialPostCronSecret: process.env.OFFICIAL_POST_CRON_SECRET ?? "",
+  officialPostIntervalMinutes: parsePositiveInt(process.env.OFFICIAL_POST_INTERVAL_MINUTES, 180),
   nodeEnv: process.env.NODE_ENV ?? "development"
 };
 
@@ -25,6 +30,10 @@ if (!env.adminLoginId || !env.adminLoginPassword) {
   console.warn("ADMIN_LOGIN_ID or ADMIN_LOGIN_PASSWORD is not set.");
 }
 
+if (!env.officialPostCronSecret) {
+  console.warn("OFFICIAL_POST_CRON_SECRET is not set. Automated cron posting endpoint will be disabled.");
+}
+
 if (env.nodeEnv === "production") {
   if (!process.env.AUTH_SECRET || env.authSecret === "dev-secret-change-me") {
     console.warn("AUTH_SECRET should be set to a strong random value in production.");
@@ -32,4 +41,14 @@ if (env.nodeEnv === "production") {
   if (!env.adminLoginId || !env.adminLoginPassword) {
     console.warn("ADMIN_LOGIN_ID and ADMIN_LOGIN_PASSWORD should be set in production.");
   }
+  if (!env.officialPostCronSecret) {
+    console.warn("OFFICIAL_POST_CRON_SECRET should be set in production.");
+  }
+}
+
+function parsePositiveInt(raw: string | undefined, fallback: number) {
+  const parsed = Number(raw ?? "");
+  if (!Number.isFinite(parsed)) return fallback;
+  const rounded = Math.floor(parsed);
+  return rounded > 0 ? rounded : fallback;
 }
