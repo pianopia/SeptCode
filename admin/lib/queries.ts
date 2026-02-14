@@ -1,5 +1,5 @@
-import { desc, eq, sql } from "drizzle-orm";
-import { comments, posts, tags, users } from "@septcode/db/schema";
+import { desc, eq, inArray, sql } from "drizzle-orm";
+import { comments, likes, postTags, posts, tags, users } from "@septcode/db/schema";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 
@@ -75,16 +75,40 @@ export async function getOfficialPostsForAdmin(limit = 20) {
       code: posts.code,
       createdAt: posts.createdAt,
       authorName: users.name,
-      authorHandle: users.handle
+      authorHandle: users.handle,
+      authorAvatarUrl: users.avatarUrl,
+      likeCount: sql<number>`cast(count(distinct ${likes.userId}) as int)`,
+      commentCount: sql<number>`cast(count(distinct ${comments.id}) as int)`
     })
     .from(posts)
     .innerJoin(users, eq(posts.userId, users.id))
+    .leftJoin(likes, eq(likes.postId, posts.id))
+    .leftJoin(comments, eq(comments.postId, posts.id))
     .where(eq(users.handle, env.officialPostHandle))
+    .groupBy(posts.id, users.id)
     .orderBy(desc(posts.createdAt))
     .limit(safeLimit);
 
+  const postIds = rows.map((row) => row.id);
+  const tagRows =
+    postIds.length > 0
+      ? await db
+          .select({ postId: postTags.postId, name: tags.name })
+          .from(postTags)
+          .innerJoin(tags, eq(postTags.tagId, tags.id))
+          .where(inArray(postTags.postId, postIds))
+      : [];
+
+  const tagMap = new Map<number, string[]>();
+  for (const row of tagRows) {
+    const values = tagMap.get(row.postId) ?? [];
+    values.push(row.name);
+    tagMap.set(row.postId, values);
+  }
+
   return rows.map((row) => ({
     ...row,
+    tags: tagMap.get(row.id) ?? [],
     lineCount: row.code.split("\n").filter((line) => line.trim().length > 0).length
   }));
 }

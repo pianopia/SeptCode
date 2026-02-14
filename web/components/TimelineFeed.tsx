@@ -36,7 +36,7 @@ export function TimelineFeed({
 }: {
   initialItems: TimelinePost[];
   initialHasMore: boolean;
-  tab: "for-you" | "following";
+  tab: "for-you" | "latest" | "following";
   query: string;
   canLike: boolean;
   viewerUserId: number | null;

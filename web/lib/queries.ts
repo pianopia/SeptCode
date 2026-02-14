@@ -368,6 +368,56 @@ export async function getFollowingTimelinePage(userId: number, page: number, lim
   return { items, hasMore };
 }
 
+export async function getLatestTimelinePage(userId: number | null, page: number, limit: number, query?: string | null) {
+  const safePage = Math.max(1, page);
+  const safeLimit = Math.min(Math.max(1, limit), 50);
+  const offset = (safePage - 1) * safeLimit;
+
+  const parsedQuery = parseTimelineSearchQuery(query);
+  if (parsedQuery) {
+    const base = await getBaseRecentPosts(400);
+    const enriched = await hydrateTimeline(base, userId);
+    const filtered = filterTimelineByQuery(enriched, parsedQuery.raw);
+    const items = filtered.slice(offset, offset + safeLimit);
+    return {
+      items,
+      hasMore: offset + safeLimit < filtered.length
+    };
+  }
+
+  const base: BaseTimelineRow[] = await db
+    .select({
+      id: posts.id,
+      publicId: posts.publicId,
+      premise1: posts.premise1,
+      premise2: posts.premise2,
+      code: posts.code,
+      language: posts.language,
+      version: posts.version,
+      aiSummary: posts.aiSummary,
+      createdAt: posts.createdAt,
+      authorId: users.id,
+      authorName: users.name,
+      authorHandle: users.handle,
+      authorAvatarUrl: users.avatarUrl,
+      authorProfileLanguagesRaw: users.profileLanguages,
+      likeCount: sql<number>`cast(count(distinct ${likes.userId}) as int)`,
+      commentCount: sql<number>`cast(count(distinct ${comments.id}) as int)`
+    })
+    .from(posts)
+    .innerJoin(users, eq(posts.userId, users.id))
+    .leftJoin(likes, eq(likes.postId, posts.id))
+    .leftJoin(comments, eq(comments.postId, posts.id))
+    .groupBy(posts.id, users.id)
+    .orderBy(desc(posts.createdAt))
+    .limit(safeLimit + 1)
+    .offset(offset);
+
+  const hasMore = base.length > safeLimit;
+  const items = await hydrateTimeline(base.slice(0, safeLimit), userId);
+  return { items, hasMore };
+}
+
 export async function getTimelinePage({
   tab,
   userId,
@@ -375,7 +425,7 @@ export async function getTimelinePage({
   limit,
   query
 }: {
-  tab: "for-you" | "following";
+  tab: "for-you" | "latest" | "following";
   userId: number | null;
   page: number;
   limit: number;
@@ -384,6 +434,9 @@ export async function getTimelinePage({
   if (tab === "following") {
     if (!userId) return { items: [], hasMore: false };
     return getFollowingTimelinePage(userId, page, limit, query);
+  }
+  if (tab === "latest") {
+    return getLatestTimelinePage(userId, page, limit, query);
   }
   return getRecommendedTimelinePage(userId, page, limit, query);
 }

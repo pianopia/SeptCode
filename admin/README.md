@@ -21,6 +21,7 @@ bun run dev:admin
 - `OFFICIAL_POST_EMAIL`
 - `OFFICIAL_POST_CRON_SECRET`
 - `OFFICIAL_POST_INTERVAL_MINUTES`
+- `WEB_APP_URL` (任意: 公式投稿プレビュー埋め込み先。既定 `http://localhost:3000`)
 
 `admin/.env.example` をコピーして `admin/.env` を作成してください。
 

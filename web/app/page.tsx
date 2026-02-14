@@ -15,23 +15,36 @@ type HomeSearchParams = {
   post_error?: string | string[];
 };
 
+function timelineTabClass(active: boolean, disabled = false) {
+  if (disabled) {
+    return "rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-2 text-center text-sm text-slate-600";
+  }
+  return `rounded-lg border px-3 py-2 text-center text-sm transition ${
+    active
+      ? "border-emerald-400/70 bg-emerald-500/10 text-emerald-200"
+      : "border-slate-700 bg-slate-900/40 text-slate-300 hover:border-slate-500 hover:text-slate-100"
+  }`;
+}
+
 export default async function HomePage({ searchParams }: { searchParams?: HomeSearchParams }) {
   const userId = await getSessionUserId();
   const rawTab = Array.isArray(searchParams?.tab) ? searchParams?.tab[0] : searchParams?.tab;
   const rawError = Array.isArray(searchParams?.error) ? searchParams?.error[0] : searchParams?.error;
   const rawPostError = Array.isArray(searchParams?.post_error) ? searchParams?.post_error[0] : searchParams?.post_error;
-  const tab = rawTab === "following" ? "following" : "for-you";
+  const tab = rawTab === "following" ? "following" : rawTab === "latest" ? "latest" : "for-you";
   const postErrorMessage = rawPostError && rawPostError.trim().length > 0 ? rawPostError : DEFAULT_POST_ERROR_MESSAGE;
 
-  const [forYouPage, followingPage, me, suggestions] = await Promise.all([
+  const [forYouPage, latestPage, followingPage, me, suggestions] = await Promise.all([
     getTimelinePage({ tab: "for-you", userId, page: 1, limit: 20 }),
+    getTimelinePage({ tab: "latest", userId, page: 1, limit: 20 }),
     userId ? getTimelinePage({ tab: "following", userId, page: 1, limit: 20 }) : Promise.resolve({ items: [], hasMore: false }),
     userId ? db.select().from(users).where(eq(users.id, userId)).limit(1) : Promise.resolve([]),
     getComposerSuggestions()
   ]);
 
-  const effectiveTab: "for-you" | "following" = tab === "following" && me[0] ? "following" : "for-you";
-  const activePage = effectiveTab === "following" ? followingPage : forYouPage;
+  const effectiveTab: "for-you" | "latest" | "following" =
+    tab === "following" ? (me[0] ? "following" : "for-you") : tab === "latest" ? "latest" : "for-you";
+  const activePage = effectiveTab === "following" ? followingPage : effectiveTab === "latest" ? latestPage : forYouPage;
   const myAvatarUrl = me[0]
     ? me[0].avatarUrl && me[0].avatarUrl.trim().length > 0
       ? me[0].avatarUrl
@@ -73,6 +86,24 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
 
       </header>
 
+      <section className="grid grid-cols-3 gap-2 rounded-xl border border-slate-700 bg-panel/70 p-2">
+        <Link href="/?tab=for-you" className={timelineTabClass(effectiveTab === "for-you")}>
+          おすすめ
+        </Link>
+        <Link href="/?tab=latest" className={timelineTabClass(effectiveTab === "latest")}>
+          最新
+        </Link>
+        {me[0] ? (
+          <Link href="/?tab=following" className={timelineTabClass(effectiveTab === "following")}>
+            フォロー中
+          </Link>
+        ) : (
+          <Link href="/login" className={timelineTabClass(false, true)}>
+            フォロー中
+          </Link>
+        )}
+      </section>
+
       {me[0] && effectiveTab === "following" && (
         <article className="rounded-xl border border-slate-700 bg-panel/70 px-4 py-3 text-xs text-slate-300 sm:text-sm">
           <div className="flex items-center justify-between gap-2">
@@ -97,11 +128,13 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
         query=""
         canLike={Boolean(me[0])}
         viewerUserId={me[0]?.id ?? null}
-        returnTo={effectiveTab === "following" ? "/?tab=following" : "/"}
+        returnTo={effectiveTab === "following" ? "/?tab=following" : effectiveTab === "latest" ? "/?tab=latest" : "/?tab=for-you"}
         emptyMessage={
           effectiveTab === "following"
             ? "まだフォロー中ユーザーの投稿がありません。ユーザープロフィールからフォローしてみてください。"
-            : "おすすめ投稿はまだありません。最初の投稿を待っています。"
+            : effectiveTab === "latest"
+              ? "投稿はまだありません。最初の投稿を待っています。"
+              : "おすすめ投稿はまだありません。最初の投稿を待っています。"
         }
       />
 

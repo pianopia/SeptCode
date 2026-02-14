@@ -9,7 +9,7 @@ export async function GET(request: Request) {
   const tabParam = searchParams.get("tab");
   const pageParam = Number(searchParams.get("page") ?? "1");
   const qParam = searchParams.get("q");
-  const tab = tabParam === "following" ? "following" : "for-you";
+  const tab = tabParam === "following" ? "following" : tabParam === "latest" ? "latest" : "for-you";
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
 
   const userId = await getSessionUserId();

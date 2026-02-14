@@ -16,25 +16,31 @@ type OfficialSnippetDraft = {
   summary: string;
 };
 
+type OfficialPostPrompt = {
+  language?: string;
+  libraries?: string[];
+};
+
 type CreateOfficialPostParams = {
   source: OfficialPostTriggerSource;
   force?: boolean;
+  prompt?: OfficialPostPrompt;
 };
 
 export type CreateOfficialPostResult =
   | {
-      status: "created";
-      source: OfficialPostTriggerSource;
-      publicId: string;
-      language: string;
-      createdAt: string;
-    }
+    status: "created";
+    source: OfficialPostTriggerSource;
+    publicId: string;
+    language: string;
+    createdAt: string;
+  }
   | {
-      status: "skipped";
-      source: OfficialPostTriggerSource;
-      reason: "interval_not_elapsed";
-      nextRunAt: string;
-    };
+    status: "skipped";
+    source: OfficialPostTriggerSource;
+    reason: "interval_not_elapsed";
+    nextRunAt: string;
+  };
 
 const MAX_CODE_LINES = 7;
 
@@ -223,7 +229,18 @@ function computeDefaultSummary(draft: OfficialSnippetDraft) {
   return clipText(`${draft.language}の実用スニペット。${draft.premise1}`, 120);
 }
 
-function pickFallbackSnippet(recentLanguages: string[]) {
+function pickFallbackSnippet(recentLanguages: string[], preferredLanguage?: string) {
+  const preferred = preferredLanguage?.trim().toLowerCase();
+  if (preferred) {
+    const matched = FALLBACK_SNIPPETS.find((snippet) => snippet.language.toLowerCase() === preferred);
+    if (matched) {
+      return {
+        ...matched,
+        tags: [...matched.tags]
+      };
+    }
+  }
+
   const recent = new Set(recentLanguages.map((language) => language.toLowerCase()));
   const unseen = FALLBACK_SNIPPETS.filter((snippet) => !recent.has(snippet.language.toLowerCase()));
   const target = unseen.length > 0 ? unseen[0] : FALLBACK_SNIPPETS[Math.floor(Date.now() / 60000) % FALLBACK_SNIPPETS.length];
@@ -285,20 +302,64 @@ function normalizeDraft(raw: unknown, fallback: OfficialSnippetDraft): OfficialS
   };
 }
 
-async function generateDraftWithAI(recentLanguages: string[], fallback: OfficialSnippetDraft) {
+function normalizePrompt(prompt?: OfficialPostPrompt): OfficialPostPrompt {
+  const language = clipText(String(prompt?.language ?? ""), 40);
+  const libraries = Array.isArray(prompt?.libraries)
+    ? prompt.libraries
+      .map((value) => clipText(String(value ?? "").replace(/^#/, ""), 40))
+      .filter((value) => value.length > 0)
+      .filter((value, index, values) => values.findIndex((x) => x.toLowerCase() === value.toLowerCase()) === index)
+      .slice(0, 6)
+    : [];
+  return {
+    language: language || undefined,
+    libraries
+  };
+}
+
+function applyPromptToDraft(draft: OfficialSnippetDraft, prompt?: OfficialPostPrompt): OfficialSnippetDraft {
+  const normalizedPrompt = normalizePrompt(prompt);
+  const finalLanguage = normalizedPrompt.language ?? draft.language;
+  const normalizedTags = normalizeTags(draft.tags, finalLanguage, draft.tags);
+  const promptLibraries = normalizedPrompt.libraries ?? [];
+
+  const mergedTagSource = [
+    ...normalizedTags,
+    ...promptLibraries.map((value) => value.toLowerCase()),
+    finalLanguage.toLowerCase()
+  ];
+
+  return {
+    ...draft,
+    language: finalLanguage,
+    tags: normalizeTags(mergedTagSource, finalLanguage, draft.tags)
+  };
+}
+
+async function generateDraftWithAI(recentLanguages: string[], fallback: OfficialSnippetDraft, prompt?: OfficialPostPrompt) {
   if (!process.env.OPENAI_API_KEY) return null;
 
   const recentHint = recentLanguages.length > 0 ? recentLanguages.join(", ") : "なし";
+  const normalizedPrompt = normalizePrompt(prompt);
+  const promptHints: string[] = [];
 
-  const prompt = [
+  if (normalizedPrompt.language) {
+    promptHints.push(`- language は「${normalizedPrompt.language}」を最優先で選ぶ`);
+  }
+  if (normalizedPrompt.libraries && normalizedPrompt.libraries.length > 0) {
+    promptHints.push(`- code には次のライブラリ/フレームワークのいずれかを使う: ${normalizedPrompt.libraries.join(", ")}`);
+  }
+
+  const promptText = [
     "SeptCode運営公式の自動投稿を生成してください。",
     "出力はJSONオブジェクト1つのみで返してください（前置き・コードフェンス禁止）。",
     "必須キー: premise1, premise2, code, language, version, tags, summary",
     "制約:",
     "- code は実用的な内容で 7 行以内",
-    "- premise1 / premise2 は各140文字以内",
+    "- premise1 / premise2 は各50文字以内。機能についてのみ記載してください。SeptCodeの公式投稿ということは入れないでください",
     "- tags は文字列配列で最大8件、先頭に official を含める",
     "- language は最近投稿と重複しすぎないこと",
+    ...promptHints,
     `最近使ったlanguage: ${recentHint}`,
     "フォーマット例:",
     '{"premise1":"...","premise2":"...","code":"line1\\nline2","language":"TypeScript","version":"5.x","tags":["official","typescript"],"summary":"..."}'
@@ -313,7 +374,7 @@ async function generateDraftWithAI(recentLanguages: string[], fallback: Official
       },
       body: JSON.stringify({
         model: "gpt-4.1-mini",
-        input: [{ role: "user", content: prompt }],
+        input: [{ role: "user", content: promptText }],
         max_output_tokens: 600
       })
     });
@@ -419,7 +480,8 @@ async function getLatestOfficialPost(userId: number) {
 
 export async function createAutomatedOfficialPost({
   source,
-  force = false
+  force = false,
+  prompt
 }: CreateOfficialPostParams): Promise<CreateOfficialPostResult> {
   const officialUser = await ensureOfficialUser();
 
@@ -440,8 +502,10 @@ export async function createAutomatedOfficialPost({
   }
 
   const recentLanguages = await getRecentOfficialLanguages(officialUser.id);
-  const fallback = pickFallbackSnippet(recentLanguages);
-  const generated = (await generateDraftWithAI(recentLanguages, fallback)) ?? fallback;
+  const normalizedPrompt = normalizePrompt(prompt);
+  const fallback = applyPromptToDraft(pickFallbackSnippet(recentLanguages, normalizedPrompt.language), normalizedPrompt);
+  const generated =
+    applyPromptToDraft((await generateDraftWithAI(recentLanguages, fallback, normalizedPrompt)) ?? fallback, normalizedPrompt);
 
   const created = await db
     .insert(posts)

@@ -19,6 +19,7 @@ export const env = {
   officialPostEmail: process.env.OFFICIAL_POST_EMAIL ?? "official@septcode.local",
   officialPostCronSecret: process.env.OFFICIAL_POST_CRON_SECRET ?? "",
   officialPostIntervalMinutes: parsePositiveInt(process.env.OFFICIAL_POST_INTERVAL_MINUTES, 180),
+  webAppUrl: resolveWebAppUrl(),
   nodeEnv: process.env.NODE_ENV ?? "development"
 };
 
@@ -51,4 +52,17 @@ function parsePositiveInt(raw: string | undefined, fallback: number) {
   if (!Number.isFinite(parsed)) return fallback;
   const rounded = Math.floor(parsed);
   return rounded > 0 ? rounded : fallback;
+}
+
+function normalizeBaseUrl(raw: string) {
+  return raw.trim().replace(/\/+$/, "");
+}
+
+function resolveWebAppUrl() {
+  const candidates = [process.env.WEB_APP_URL, process.env.NEXT_PUBLIC_SITE_URL];
+  for (const candidate of candidates) {
+    const normalized = normalizeBaseUrl(String(candidate ?? ""));
+    if (normalized) return normalized;
+  }
+  return "http://localhost:3000";
 }

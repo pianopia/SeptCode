@@ -3,12 +3,19 @@
 import { and, eq, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { tags } from "@septcode/db/schema";
+import { posts, tags, users } from "@septcode/db/schema";
 import { clearAdminSession, isAdminAuthenticated, setAdminSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { createAutomatedOfficialPost } from "@/lib/official-post";
-import { adminLoginSchema, createMasterSchema, deleteMasterSchema, updateMasterSchema } from "@/lib/validators";
+import {
+  adminLoginSchema,
+  createMasterSchema,
+  deleteMasterSchema,
+  deleteOfficialPostSchema,
+  runOfficialPostSchema,
+  updateMasterSchema
+} from "@/lib/validators";
 
 function normalizeName(name: string) {
   return name.trim().replace(/^#/, "");
@@ -121,10 +128,34 @@ export async function deleteMasterAction(formData: FormData) {
 export async function runOfficialAutoPostAction(formData: FormData) {
   await requireAdminAuth();
 
-  const force = String(formData.get("force") ?? "1") === "1";
+  const parsed = runOfficialPostSchema.safeParse({
+    force: String(formData.get("force") ?? "1"),
+    languagePrompt: String(formData.get("languagePrompt") ?? ""),
+    libraryPrompt: String(formData.get("libraryPrompt") ?? "")
+  });
+
+  if (!parsed.success) redirect("/official-posts?status=invalid_input");
+
+  const force = parsed.data.force === "1";
+  const libraries = parsed.data.libraryPrompt
+    .split(/[,\n]/)
+    .map((value) => value.trim().replace(/^#/, "").slice(0, 40))
+    .filter(Boolean)
+    .filter((value, index, values) => values.findIndex((x) => x.toLowerCase() === value.toLowerCase()) === index)
+    .slice(0, 6);
 
   try {
-    const result = await createAutomatedOfficialPost({ source: "manual", force });
+    const result = await createAutomatedOfficialPost({
+      source: "manual",
+      force,
+      prompt:
+        parsed.data.languagePrompt || libraries.length > 0
+          ? {
+              language: parsed.data.languagePrompt || undefined,
+              libraries
+            }
+          : undefined
+    });
     revalidatePath("/");
     revalidatePath("/official-posts");
 
@@ -140,4 +171,30 @@ export async function runOfficialAutoPostAction(formData: FormData) {
   } catch {
     redirect("/official-posts?status=error");
   }
+}
+
+export async function deleteOfficialPostAction(formData: FormData) {
+  await requireAdminAuth();
+
+  const parsed = deleteOfficialPostSchema.safeParse({
+    postPublicId: String(formData.get("postPublicId") ?? "")
+  });
+
+  if (!parsed.success) redirect("/official-posts?delete=invalid_input");
+
+  const existing = (
+    await db
+      .select({ id: posts.id })
+      .from(posts)
+      .innerJoin(users, eq(posts.userId, users.id))
+      .where(and(eq(posts.publicId, parsed.data.postPublicId), eq(users.handle, env.officialPostHandle)))
+      .limit(1)
+  )[0];
+
+  if (!existing) redirect("/official-posts?delete=not_found");
+
+  await db.delete(posts).where(eq(posts.id, existing.id));
+  revalidatePath("/");
+  revalidatePath("/official-posts");
+  redirect("/official-posts?delete=success");
 }
