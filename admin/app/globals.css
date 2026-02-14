@@ -1,3 +1,4 @@
+@import "highlight.js/styles/github-dark.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -36,4 +37,9 @@ select {
 
 button {
   cursor: pointer;
+}
+
+.code-no-ligatures {
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
 }

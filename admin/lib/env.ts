@@ -3,9 +3,8 @@ import { loadEnvConfig } from "@next/env";
 
 if (typeof window === "undefined") {
   loadEnvConfig(process.cwd());
-  if (!process.env.TURSO_DATABASE_URL) {
-    loadEnvConfig(path.resolve(process.cwd(), ".."));
-  }
+  // Also load repository-root .env as fallback for variables not defined in admin/.env
+  loadEnvConfig(path.resolve(process.cwd(), ".."));
 }
 
 export const env = {

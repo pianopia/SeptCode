@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ComposeFab } from "@/components/ComposeFab";
+import { ScrollHideHeader } from "@/components/ScrollHideHeader";
 import { TimelineFeed } from "@/components/TimelineFeed";
 import { users } from "@septcode/db/schema";
 import { db } from "@/lib/db";
@@ -53,7 +54,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <header className="sticky top-0 z-20 overflow-hidden rounded-xl border border-slate-700 bg-panel/95 backdrop-blur">
+      <ScrollHideHeader>
         <div className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
           <div className="flex min-w-0 items-end gap-2">
             <Image src="/logo.png" alt="SeptCode logo" width={36} height={36} className="mb-0.5 h-9 w-9 shrink-0" />
@@ -84,7 +85,7 @@ export default async function HomePage({ searchParams }: { searchParams?: HomeSe
           )}
         </div>
 
-      </header>
+      </ScrollHideHeader>
 
       <section className="grid grid-cols-3 gap-2 rounded-xl border border-slate-700 bg-panel/70 p-2">
         <Link href="/?tab=for-you" className={timelineTabClass(effectiveTab === "for-you")}>

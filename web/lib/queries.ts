@@ -35,6 +35,7 @@ type ParsedTimelineSearchQuery = {
   textTerms: string[];
   tagTerms: string[];
   langTerms: string[];
+  dateTerms: string[];
 };
 
 function normalizeSearchText(value: string) {
@@ -45,15 +46,21 @@ function fuzzyIncludes(haystackRaw: string, needleRaw: string) {
   const haystack = normalizeSearchText(haystackRaw);
   const needle = normalizeSearchText(needleRaw);
   if (!needle) return true;
-  if (haystack.includes(needle)) return true;
+  return haystack.includes(needle);
+}
 
-  let index = 0;
-  for (const ch of needle) {
-    index = haystack.indexOf(ch, index);
-    if (index === -1) return false;
-    index += 1;
+function createSearchableDateText(createdAtRaw: string) {
+  const created = parseDbTimestamp(createdAtRaw);
+  if (!Number.isFinite(created.getTime())) {
+    return normalizeSearchText(createdAtRaw);
   }
-  return true;
+
+  const iso = created.toISOString();
+  const yyyyMmDd = iso.slice(0, 10);
+  const yyyyMm = yyyyMmDd.slice(0, 7);
+  const yyyy = yyyyMmDd.slice(0, 4);
+
+  return normalizeSearchText([createdAtRaw, yyyyMmDd, yyyyMmDd.replaceAll("-", "/"), yyyyMm, yyyy].join(" "));
 }
 
 function parseTimelineSearchQuery(query?: string | null): ParsedTimelineSearchQuery | null {
@@ -64,7 +71,8 @@ function parseTimelineSearchQuery(query?: string | null): ParsedTimelineSearchQu
     raw,
     textTerms: [],
     tagTerms: [],
-    langTerms: []
+    langTerms: [],
+    dateTerms: []
   };
 
   for (const tokenRaw of raw.split(/\s+/)) {
@@ -87,6 +95,11 @@ function parseTimelineSearchQuery(query?: string | null): ParsedTimelineSearchQu
       if (term) parsed.langTerms.push(term);
       continue;
     }
+    if (lower.startsWith("date:")) {
+      const term = normalizeSearchText(token.slice(5));
+      if (term) parsed.dateTerms.push(term);
+      continue;
+    }
 
     parsed.textTerms.push(normalizeSearchText(token));
   }
@@ -101,15 +114,12 @@ function filterTimelineByQuery(items: TimelineItem[], query?: string | null) {
   return items.filter((item) => {
     const tagValues = item.tags.map((tag) => normalizeSearchText(tag));
     const languageValue = normalizeSearchText(item.language);
+    const dateValue = createSearchableDateText(item.createdAt);
     const searchableText = [
       item.authorName,
       item.authorHandle,
       item.language,
-      item.version ?? "",
-      item.premise1,
-      item.premise2,
       item.code,
-      item.aiSummary ?? "",
       item.tags.join(" ")
     ].join("\n");
 
@@ -118,6 +128,9 @@ function filterTimelineByQuery(items: TimelineItem[], query?: string | null) {
 
     const matchesLang = parsed.langTerms.every((term) => fuzzyIncludes(languageValue, term));
     if (!matchesLang) return false;
+
+    const matchesDate = parsed.dateTerms.every((term) => fuzzyIncludes(dateValue, term));
+    if (!matchesDate) return false;
 
     const matchesText = parsed.textTerms.every((term) => fuzzyIncludes(searchableText, term));
     return matchesText;

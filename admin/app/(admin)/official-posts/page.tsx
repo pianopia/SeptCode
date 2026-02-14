@@ -1,4 +1,5 @@
 import { deleteOfficialPostAction, runOfficialAutoPostAction } from "@/app/actions";
+import { CodeRenderer } from "@/components/CodeRenderer";
 import { env } from "@/lib/env";
 import { getOfficialPostsForAdmin } from "@/lib/queries";
 
@@ -87,7 +88,7 @@ export default async function OfficialPostsPage({ searchParams }: { searchParams
       </section>
 
       <section className="rounded-xl border border-line bg-panel p-4">
-        <h2 className="text-lg font-semibold text-ink">最新の公式投稿（Web表示プレビュー付き）</h2>
+        <h2 className="text-lg font-semibold text-ink">最新の公式投稿（シンタックスハイライト表示）</h2>
         {posts.length === 0 ? (
           <p className="mt-3 text-sm text-subInk">まだ公式投稿がありません。上の「今すぐ実行」を押してください。</p>
         ) : (
@@ -124,13 +125,8 @@ export default async function OfficialPostsPage({ searchParams }: { searchParams
                     ))}
                   </div>
                 ) : null}
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-2">
-                  <iframe
-                    title={`official-post-${post.publicId}`}
-                    src={`${env.webAppUrl}/posts/${post.publicId}`}
-                    loading="lazy"
-                    className="h-[640px] w-full rounded-lg border border-slate-200 bg-white"
-                  />
+                <div className="rounded-xl border border-slate-200 bg-slate-900 p-3">
+                  <CodeRenderer language={post.language} code={post.code} />
                 </div>
               </li>
             ))}

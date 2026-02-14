@@ -144,8 +144,9 @@ export async function runOfficialAutoPostAction(formData: FormData) {
     .filter((value, index, values) => values.findIndex((x) => x.toLowerCase() === value.toLowerCase()) === index)
     .slice(0, 6);
 
+  let result: Awaited<ReturnType<typeof createAutomatedOfficialPost>>;
   try {
-    const result = await createAutomatedOfficialPost({
+    result = await createAutomatedOfficialPost({
       source: "manual",
       force,
       prompt:
@@ -156,21 +157,22 @@ export async function runOfficialAutoPostAction(formData: FormData) {
             }
           : undefined
     });
-    revalidatePath("/");
-    revalidatePath("/official-posts");
-
-    const query = new URLSearchParams({ status: result.status });
-    if (result.status === "created") {
-      query.set("publicId", result.publicId);
-      query.set("language", result.language);
-    } else {
-      query.set("reason", result.reason);
-      query.set("nextRunAt", result.nextRunAt);
-    }
-    redirect(`/official-posts?${query.toString()}`);
   } catch {
     redirect("/official-posts?status=error");
   }
+
+  revalidatePath("/");
+  revalidatePath("/official-posts");
+
+  const query = new URLSearchParams({ status: result.status });
+  if (result.status === "created") {
+    query.set("publicId", result.publicId);
+    query.set("language", result.language);
+  } else {
+    query.set("reason", result.reason);
+    query.set("nextRunAt", result.nextRunAt);
+  }
+  redirect(`/official-posts?${query.toString()}`);
 }
 
 export async function deleteOfficialPostAction(formData: FormData) {

@@ -3,6 +3,7 @@ import Image from "next/image";
 import { eq } from "drizzle-orm";
 import { users } from "@septcode/db/schema";
 import { TimelineFeed } from "@/components/TimelineFeed";
+import { ScrollHideHeader } from "@/components/ScrollHideHeader";
 import { db } from "@/lib/db";
 import { getSessionUserId } from "@/lib/auth";
 import { getTimelinePage } from "@/lib/queries";
@@ -29,7 +30,7 @@ export default async function SearchPage({ searchParams }: { searchParams?: Sear
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
-      <header className="sticky top-0 z-20 overflow-hidden rounded-xl border border-slate-700 bg-panel/95 backdrop-blur">
+      <ScrollHideHeader>
         <div className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
           <div className="flex min-w-0 items-end gap-2">
             <Image src="/logo.png" alt="SeptCode logo" width={36} height={36} className="mb-0.5 h-9 w-9 shrink-0" />
@@ -48,11 +49,11 @@ export default async function SearchPage({ searchParams }: { searchParams?: Sear
             </Link>
           ) : null}
         </div>
-      </header>
+      </ScrollHideHeader>
 
       <section className="rounded-xl border border-slate-700 bg-panel/80 p-3 sm:p-4">
         <form action="/search" method="get" className="flex flex-col gap-2 sm:flex-row">
-          <input type="text" name="q" defaultValue={query} placeholder="検索: keyword / tag:react / lang:typescript" className="w-full" maxLength={120} />
+          <input type="text" name="q" defaultValue={query} placeholder="検索: keyword / tag:react / lang:typescript / date:2026-02-14" className="w-full" maxLength={120} />
           <div className="flex shrink-0 gap-2">
             <button type="submit" className="h-10 w-20 whitespace-nowrap rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-slate-950">
               検索
@@ -64,7 +65,7 @@ export default async function SearchPage({ searchParams }: { searchParams?: Sear
             ) : null}
           </div>
         </form>
-        <p className="mt-2 text-xs text-slate-400">`tag:xxx` でタグ、`lang:xxx` で言語、通常語は曖昧検索します。</p>
+        <p className="mt-2 text-xs text-slate-400">検索対象はユーザー名・ソースコード・言語・タグ・日付です。`tag:xxx` / `lang:xxx` / `date:yyyy-mm-dd` も使えます。</p>
       </section>
 
       {query ? (
@@ -80,7 +81,7 @@ export default async function SearchPage({ searchParams }: { searchParams?: Sear
         />
       ) : (
         <article className="rounded-xl border border-slate-700 bg-panel/70 p-5 text-sm text-slate-300">
-          キーワードを入力して検索してください。例: `tag:react lang:ts useState`
+          キーワードを入力して検索してください。例: `tag:react lang:ts date:2026-02 useState`
         </article>
       )}
     </div>
