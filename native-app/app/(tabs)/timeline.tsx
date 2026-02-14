@@ -1,5 +1,5 @@
 import { Link, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { apiRequest } from "../../src/lib/api";
 import type { ComposerSuggestions, TimelinePost } from "../../src/lib/types";
@@ -20,7 +20,7 @@ const DEFAULT_SUGGESTIONS: ComposerSuggestions = {
 export default function TimelineScreen() {
   const router = useRouter();
   const { token, user, logout } = useAuth();
-  const [tab, setTab] = useState<"for-you" | "following">("for-you");
+  const [tab, setTab] = useState<"for-you" | "latest" | "following">("for-you");
   const [items, setItems] = useState<TimelinePost[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
@@ -35,28 +35,40 @@ export default function TimelineScreen() {
   const [posting, setPosting] = useState(false);
   const [postMessage, setPostMessage] = useState("");
   const [suggestions, setSuggestions] = useState<ComposerSuggestions>(DEFAULT_SUGGESTIONS);
+  const requestSeqRef = useRef(0);
+  const tabRef = useRef(tab);
+
+  useEffect(() => {
+    tabRef.current = tab;
+  }, [tab]);
 
   const loadPage = useCallback(
-    async (targetPage: number, reset = false) => {
+    async (targetPage: number, reset = false, requestedTab: "for-you" | "latest" | "following" = tabRef.current) => {
+      const seq = ++requestSeqRef.current;
       setLoading(true);
       setError("");
       try {
-        const data = await apiRequest<TimelineResponse>(`/timeline?tab=${tab}&page=${targetPage}&limit=20`, { token });
+        const data = await apiRequest<TimelineResponse>(`/timeline?tab=${requestedTab}&page=${targetPage}&limit=20`, { token });
+        if (seq !== requestSeqRef.current || requestedTab !== tabRef.current) return;
         setItems((prev) => (reset ? data.items : [...prev, ...data.items]));
         setHasMore(data.hasMore);
         setPage(targetPage);
       } catch (e) {
+        if (seq !== requestSeqRef.current || requestedTab !== tabRef.current) return;
         setError(e instanceof Error ? e.message : "timeline_failed");
       } finally {
-        setLoading(false);
+        if (seq === requestSeqRef.current) setLoading(false);
       }
     },
-    [tab, token]
+    [token]
   );
 
   useEffect(() => {
-    void loadPage(1, true);
-  }, [loadPage]);
+    setItems([]);
+    setHasMore(false);
+    setPage(1);
+    void loadPage(1, true, tab);
+  }, [tab, loadPage]);
 
   useEffect(() => {
     void (async () => {
@@ -160,6 +172,9 @@ export default function TimelineScreen() {
       <View style={styles.tabRow}>
         <Pressable style={[styles.tab, tab === "for-you" && styles.tabActive]} onPress={() => setTab("for-you")}>
           <Text style={styles.tabText}>おすすめ</Text>
+        </Pressable>
+        <Pressable style={[styles.tab, tab === "latest" && styles.tabActive]} onPress={() => setTab("latest")}>
+          <Text style={styles.tabText}>最新</Text>
         </Pressable>
         <Pressable
           style={[styles.tab, tab === "following" && styles.tabActive, !token && styles.tabDisabled]}

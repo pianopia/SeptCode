@@ -11,6 +11,8 @@ type Profile = {
   name: string;
   handle: string;
   bio: string;
+  avatarUrl: string | null;
+  profileLanguages: string[];
   followerCount: number;
   followingCount: number;
   isFollowing: boolean;
@@ -49,7 +51,12 @@ export default function UserProfileScreen() {
     setProfile(refreshed);
   }
 
-  const avatarUrl = profile ? `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(profile.handle)}` : "";
+  const avatarUrl = profile
+    ? profile.avatarUrl && profile.avatarUrl.trim().length > 0
+      ? profile.avatarUrl
+      : `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(profile.handle)}`
+    : "";
+  const profileLanguages = Array.isArray(profile?.profileLanguages) ? profile.profileLanguages : [];
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -68,6 +75,17 @@ export default function UserProfileScreen() {
               {profile.followerCount} followers / {profile.followingCount} following
             </Text>
             <Text style={styles.bio}>{profile.bio || "自己紹介は未設定です。"}</Text>
+            <View style={styles.languageRow}>
+              {profileLanguages.length > 0 ? (
+                profileLanguages.map((lang) => (
+                  <Text key={lang} style={styles.languageChip}>
+                    {lang}
+                  </Text>
+                ))
+              ) : (
+                <Text style={styles.languageEmpty}>扱う言語は未設定です。</Text>
+              )}
+            </View>
             {token && user?.id !== profile.id && (
               <Pressable style={styles.button} onPress={() => void toggleFollow()}>
                 <Text style={styles.buttonText}>{profile.isFollowing ? "フォロー中" : "フォローする"}</Text>
@@ -103,6 +121,17 @@ const styles = StyleSheet.create({
   handle: { color: "#6efacb" },
   meta: { color: "#9fb3e5" },
   bio: { color: "#e8edff" },
+  languageRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  languageChip: {
+    color: "#c8d6fb",
+    borderWidth: 1,
+    borderColor: "#334980",
+    borderRadius: 999,
+    fontSize: 11,
+    paddingHorizontal: 7,
+    paddingVertical: 2
+  },
+  languageEmpty: { color: "#7f92c4", fontSize: 12 },
   button: { backgroundColor: "#22396e", borderRadius: 8, alignItems: "center", paddingVertical: 10, marginTop: 8 },
   buttonText: { color: "#dce6ff", fontWeight: "700" },
   loginNote: { color: "#8fa4d6", marginTop: 4 },

@@ -2,6 +2,7 @@ import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { comments, follows, likes, postTags, posts, tags, users } from "@septcode/db/schema";
 import { COMPOSER_MASTER } from "@septcode/db/composer-master";
 import { db } from "./db";
+import { parseProfileLanguages } from "./profile-languages";
 
 export type TimelineItem = {
   id: number;
@@ -16,19 +17,24 @@ export type TimelineItem = {
   authorId: number;
   authorName: string;
   authorHandle: string;
+  authorAvatarUrl: string | null;
+  authorProfileLanguages: string[];
   likeCount: number;
   commentCount: number;
   tags: string[];
   likedByMe: boolean;
 };
 
-type BaseTimelineRow = Omit<TimelineItem, "tags" | "likedByMe">;
+type BaseTimelineRow = Omit<TimelineItem, "tags" | "likedByMe" | "authorProfileLanguages"> & {
+  authorProfileLanguagesRaw: string | null;
+};
 
 type ParsedTimelineSearchQuery = {
   raw: string;
   textTerms: string[];
   tagTerms: string[];
   langTerms: string[];
+  dateTerms: string[];
 };
 
 function normalizeSearchText(value: string) {
@@ -39,15 +45,21 @@ function fuzzyIncludes(haystackRaw: string, needleRaw: string) {
   const haystack = normalizeSearchText(haystackRaw);
   const needle = normalizeSearchText(needleRaw);
   if (!needle) return true;
-  if (haystack.includes(needle)) return true;
+  return haystack.includes(needle);
+}
 
-  let index = 0;
-  for (const ch of needle) {
-    index = haystack.indexOf(ch, index);
-    if (index === -1) return false;
-    index += 1;
+function createSearchableDateText(createdAtRaw: string) {
+  const created = new Date(createdAtRaw);
+  if (!Number.isFinite(created.getTime())) {
+    return normalizeSearchText(createdAtRaw);
   }
-  return true;
+
+  const iso = created.toISOString();
+  const yyyyMmDd = iso.slice(0, 10);
+  const yyyyMm = yyyyMmDd.slice(0, 7);
+  const yyyy = yyyyMmDd.slice(0, 4);
+
+  return normalizeSearchText([createdAtRaw, yyyyMmDd, yyyyMmDd.replaceAll("-", "/"), yyyyMm, yyyy].join(" "));
 }
 
 function parseTimelineSearchQuery(query?: string | null): ParsedTimelineSearchQuery | null {
@@ -58,7 +70,8 @@ function parseTimelineSearchQuery(query?: string | null): ParsedTimelineSearchQu
     raw,
     textTerms: [],
     tagTerms: [],
-    langTerms: []
+    langTerms: [],
+    dateTerms: []
   };
 
   for (const tokenRaw of raw.split(/\s+/)) {
@@ -81,6 +94,11 @@ function parseTimelineSearchQuery(query?: string | null): ParsedTimelineSearchQu
       if (term) parsed.langTerms.push(term);
       continue;
     }
+    if (lower.startsWith("date:")) {
+      const term = normalizeSearchText(token.slice(5));
+      if (term) parsed.dateTerms.push(term);
+      continue;
+    }
 
     parsed.textTerms.push(normalizeSearchText(token));
   }
@@ -95,23 +113,17 @@ function filterTimelineByQuery(items: TimelineItem[], query?: string | null) {
   return items.filter((item) => {
     const tagValues = item.tags.map((tag) => normalizeSearchText(tag));
     const languageValue = normalizeSearchText(item.language);
-    const searchableText = [
-      item.authorName,
-      item.authorHandle,
-      item.language,
-      item.version ?? "",
-      item.premise1,
-      item.premise2,
-      item.code,
-      item.aiSummary ?? "",
-      item.tags.join(" ")
-    ].join("\n");
+    const dateValue = createSearchableDateText(item.createdAt);
+    const searchableText = [item.authorName, item.authorHandle, item.language, item.code, item.tags.join(" ")].join("\n");
 
     const matchesTags = parsed.tagTerms.every((term) => tagValues.some((tag) => fuzzyIncludes(tag, term)));
     if (!matchesTags) return false;
 
     const matchesLang = parsed.langTerms.every((term) => fuzzyIncludes(languageValue, term));
     if (!matchesLang) return false;
+
+    const matchesDate = parsed.dateTerms.every((term) => fuzzyIncludes(dateValue, term));
+    if (!matchesDate) return false;
 
     const matchesText = parsed.textTerms.every((term) => fuzzyIncludes(searchableText, term));
     return matchesText;
@@ -153,6 +165,7 @@ async function hydrateTimeline(base: BaseTimelineRow[], userId?: number | null):
 
   return base.map((row) => ({
     ...row,
+    authorProfileLanguages: parseProfileLanguages(row.authorProfileLanguagesRaw),
     tags: tagMap.get(row.id) ?? [],
     likedByMe: likedSet.has(row.id)
   }));
@@ -173,6 +186,8 @@ async function getBaseRecentPosts(limit = 240): Promise<BaseTimelineRow[]> {
       authorId: users.id,
       authorName: users.name,
       authorHandle: users.handle,
+      authorAvatarUrl: users.avatarUrl,
+      authorProfileLanguagesRaw: users.profileLanguages,
       likeCount: sql<number>`cast(count(distinct ${likes.userId}) as int)`,
       commentCount: sql<number>`cast(count(distinct ${comments.id}) as int)`
     })
@@ -260,10 +275,7 @@ function calculateRecommendationScore(
 
   const engagement = post.likeCount * 0.7 + post.commentCount * 1.1;
   const langPref = (langScore.get(post.language.toLowerCase()) ?? 0) * 1.5;
-  const tagPref = Math.min(
-    8,
-    post.tags.reduce((sum, t) => sum + (tagScore.get(t.toLowerCase()) ?? 0), 0)
-  );
+  const tagPref = Math.min(8, post.tags.reduce((sum, t) => sum + (tagScore.get(t.toLowerCase()) ?? 0), 0));
   const followBonus = followedSet.has(post.authorId) ? 4 : 0;
   const jitter = (post.id % 7) * 0.001;
 
@@ -300,6 +312,8 @@ export async function getFollowingTimelinePage(userId: number, page: number, lim
         authorId: users.id,
         authorName: users.name,
         authorHandle: users.handle,
+        authorAvatarUrl: users.avatarUrl,
+        authorProfileLanguagesRaw: users.profileLanguages,
         likeCount: sql<number>`cast(count(distinct ${likes.userId}) as int)`,
         commentCount: sql<number>`cast(count(distinct ${comments.id}) as int)`
       })
@@ -336,6 +350,8 @@ export async function getFollowingTimelinePage(userId: number, page: number, lim
       authorId: users.id,
       authorName: users.name,
       authorHandle: users.handle,
+      authorAvatarUrl: users.avatarUrl,
+      authorProfileLanguagesRaw: users.profileLanguages,
       likeCount: sql<number>`cast(count(distinct ${likes.userId}) as int)`,
       commentCount: sql<number>`cast(count(distinct ${comments.id}) as int)`
     })
@@ -355,6 +371,56 @@ export async function getFollowingTimelinePage(userId: number, page: number, lim
   return { items, hasMore };
 }
 
+export async function getLatestTimelinePage(userId: number | null, page: number, limit: number, query?: string | null) {
+  const safePage = Math.max(1, page);
+  const safeLimit = Math.min(Math.max(1, limit), 50);
+  const offset = (safePage - 1) * safeLimit;
+
+  const parsedQuery = parseTimelineSearchQuery(query);
+  if (parsedQuery) {
+    const base = await getBaseRecentPosts(400);
+    const enriched = await hydrateTimeline(base, userId);
+    const filtered = filterTimelineByQuery(enriched, parsedQuery.raw);
+    const items = filtered.slice(offset, offset + safeLimit);
+    return {
+      items,
+      hasMore: offset + safeLimit < filtered.length
+    };
+  }
+
+  const base: BaseTimelineRow[] = await db
+    .select({
+      id: posts.id,
+      publicId: posts.publicId,
+      premise1: posts.premise1,
+      premise2: posts.premise2,
+      code: posts.code,
+      language: posts.language,
+      version: posts.version,
+      aiSummary: posts.aiSummary,
+      createdAt: posts.createdAt,
+      authorId: users.id,
+      authorName: users.name,
+      authorHandle: users.handle,
+      authorAvatarUrl: users.avatarUrl,
+      authorProfileLanguagesRaw: users.profileLanguages,
+      likeCount: sql<number>`cast(count(distinct ${likes.userId}) as int)`,
+      commentCount: sql<number>`cast(count(distinct ${comments.id}) as int)`
+    })
+    .from(posts)
+    .innerJoin(users, eq(posts.userId, users.id))
+    .leftJoin(likes, eq(likes.postId, posts.id))
+    .leftJoin(comments, eq(comments.postId, posts.id))
+    .groupBy(posts.id, users.id)
+    .orderBy(desc(posts.createdAt))
+    .limit(safeLimit + 1)
+    .offset(offset);
+
+  const hasMore = base.length > safeLimit;
+  const items = await hydrateTimeline(base.slice(0, safeLimit), userId);
+  return { items, hasMore };
+}
+
 export async function getTimelinePage({
   tab,
   userId,
@@ -362,7 +428,7 @@ export async function getTimelinePage({
   limit,
   query
 }: {
-  tab: "for-you" | "following";
+  tab: "for-you" | "latest" | "following";
   userId: number | null;
   page: number;
   limit: number;
@@ -371,6 +437,9 @@ export async function getTimelinePage({
   if (tab === "following") {
     if (!userId) return { items: [], hasMore: false };
     return getFollowingTimelinePage(userId, page, limit, query);
+  }
+  if (tab === "latest") {
+    return getLatestTimelinePage(userId, page, limit, query);
   }
   return getRecommendedTimelinePage(userId, page, limit, query);
 }
@@ -427,7 +496,9 @@ export async function getPostDetail(publicId: string, userId?: number | null) {
         createdAt: posts.createdAt,
         authorId: users.id,
         authorName: users.name,
-        authorHandle: users.handle
+        authorHandle: users.handle,
+        authorAvatarUrl: users.avatarUrl,
+        authorProfileLanguagesRaw: users.profileLanguages
       })
       .from(posts)
       .innerJoin(users, eq(posts.userId, users.id))
@@ -448,6 +519,7 @@ export async function getPostDetail(publicId: string, userId?: number | null) {
       .select({
         id: comments.id,
         body: comments.body,
+        userId: comments.userId,
         createdAt: comments.createdAt,
         userName: users.name,
         userHandle: users.handle
@@ -460,6 +532,7 @@ export async function getPostDetail(publicId: string, userId?: number | null) {
 
   return {
     ...post,
+    authorProfileLanguages: parseProfileLanguages(post.authorProfileLanguagesRaw),
     tags: tagRows.map((t) => t.name),
     likeCount: likeRows.length,
     likedByMe: userId ? likeRows.some((x) => x.userId === userId) : false,
@@ -468,7 +541,21 @@ export async function getPostDetail(publicId: string, userId?: number | null) {
 }
 
 async function getProfileByUserId(userId: number, viewerId?: number | null) {
-  const user = (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0];
+  const user = (
+    await db
+      .select({
+        id: users.id,
+        name: users.name,
+        handle: users.handle,
+        email: users.email,
+        bio: users.bio,
+        avatarUrl: users.avatarUrl,
+        profileLanguages: users.profileLanguages
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
+  )[0];
   if (!user) return null;
 
   const [followerCount, followingCount, isFollowing, userPostsBase] = await Promise.all([
@@ -494,6 +581,8 @@ async function getProfileByUserId(userId: number, viewerId?: number | null) {
         authorId: users.id,
         authorName: users.name,
         authorHandle: users.handle,
+        authorAvatarUrl: users.avatarUrl,
+        authorProfileLanguagesRaw: users.profileLanguages,
         likeCount: sql<number>`cast(count(distinct ${likes.userId}) as int)`,
         commentCount: sql<number>`cast(count(distinct ${comments.id}) as int)`
       })
@@ -510,6 +599,7 @@ async function getProfileByUserId(userId: number, viewerId?: number | null) {
 
   return {
     ...user,
+    profileLanguages: parseProfileLanguages(user.profileLanguages),
     followerCount: followerCount[0]?.value ?? 0,
     followingCount: followingCount[0]?.value ?? 0,
     isFollowing: isFollowing.length > 0,

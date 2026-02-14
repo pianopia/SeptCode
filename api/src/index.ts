@@ -7,7 +7,8 @@ import { createAccessToken, comparePassword, hashPassword, verifyAccessToken } f
 import { explainCode } from "./lib/ai";
 import { db } from "./lib/db";
 import { env } from "./lib/env";
-import { commentSchema, createPostSchema, loginSchema, registerSchema } from "./lib/validators";
+import { parseProfileLanguages, serializeProfileLanguages } from "./lib/profile-languages";
+import { commentSchema, createPostSchema, loginSchema, registerSchema, updateProfileSchema } from "./lib/validators";
 import { getComposerSuggestions, getPostDetail, getProfileByHandle, getProfileById, getTimelinePage } from "./lib/queries";
 
 type AppContext = {
@@ -143,12 +144,12 @@ app.get("/auth/me", async (c) => {
   if (!userId) return c.json({ error: "unauthorized" }, 401);
 
   const me = await db
-    .select({ id: users.id, name: users.name, handle: users.handle, email: users.email, bio: users.bio })
+    .select({ id: users.id, name: users.name, handle: users.handle, email: users.email, bio: users.bio, avatarUrl: users.avatarUrl, profileLanguages: users.profileLanguages })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
   if (!me[0]) return c.json({ error: "not_found" }, 404);
-  return c.json(me[0]);
+  return c.json({ ...me[0], profileLanguages: parseProfileLanguages(me[0].profileLanguages) });
 });
 
 app.get("/timeline", async (c) => {
@@ -156,7 +157,7 @@ app.get("/timeline", async (c) => {
   const pageParam = Number(c.req.query("page") ?? "1");
   const limitParam = Number(c.req.query("limit") ?? "20");
   const qParam = c.req.query("q");
-  const tab = tabParam === "following" ? "following" : "for-you";
+  const tab = tabParam === "following" ? "following" : tabParam === "latest" ? "latest" : "for-you";
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
   const limit = Number.isFinite(limitParam) && limitParam > 0 ? limitParam : 20;
   const userId = c.get("userId");
@@ -333,6 +334,69 @@ app.post("/posts/:publicId/comments", async (c) => {
   await db.insert(comments).values({ postId: post[0].id, userId, body: parsed.data.body });
   return c.json({ ok: true }, 201);
 });
+
+app.delete("/posts/:publicId/comments/:commentId", async (c) => {
+  const userId = requireAuth(c);
+  if (!userId) return c.json({ error: "unauthorized" }, 401);
+
+  const publicId = c.req.param("publicId");
+  const commentId = Number(c.req.param("commentId"));
+  if (!Number.isInteger(commentId) || commentId <= 0) return c.json({ error: "invalid_comment_id" }, 400);
+
+  const post = await db.select({ id: posts.id }).from(posts).where(eq(posts.publicId, publicId)).limit(1);
+  if (!post[0]) return c.json({ error: "not_found" }, 404);
+
+  const existing = (
+    await db
+      .select({ id: comments.id, userId: comments.userId, postId: comments.postId })
+      .from(comments)
+      .where(eq(comments.id, commentId))
+      .limit(1)
+  )[0];
+  if (!existing || existing.postId !== post[0].id) return c.json({ error: "not_found" }, 404);
+  if (existing.userId !== userId) return c.json({ error: "forbidden" }, 403);
+
+  await db.delete(comments).where(eq(comments.id, commentId));
+  return c.json({ ok: true });
+});
+
+async function updateMeProfile(c: Parameters<typeof app.patch>[1] extends (ctx: infer C) => any ? C : never) {
+  const userId = requireAuth(c);
+  if (!userId) return c.json({ error: "unauthorized" }, 401);
+
+  const input = await c.req.json().catch(() => null);
+  const parsed = updateProfileSchema.safeParse({
+    name: String((input as Record<string, unknown> | null)?.name ?? ""),
+    bio: String((input as Record<string, unknown> | null)?.bio ?? ""),
+    profileLanguages: String((input as Record<string, unknown> | null)?.profileLanguages ?? ""),
+    avatarUrl: typeof (input as Record<string, unknown> | null)?.avatarUrl === "string" ? String((input as Record<string, unknown>).avatarUrl) : undefined
+  });
+  if (!parsed.success) return c.json({ error: "invalid_profile", details: parsed.error.flatten() }, 400);
+
+  await db
+    .update(users)
+    .set({
+      name: parsed.data.name.trim(),
+      bio: parsed.data.bio.trim(),
+      profileLanguages: serializeProfileLanguages(parsed.data.profileLanguages),
+      ...(parsed.data.avatarUrl && parsed.data.avatarUrl.trim().length > 0 ? { avatarUrl: parsed.data.avatarUrl.trim() } : {})
+    })
+    .where(eq(users.id, userId));
+
+  const me = await db
+    .select({ id: users.id, name: users.name, handle: users.handle, email: users.email, bio: users.bio, avatarUrl: users.avatarUrl, profileLanguages: users.profileLanguages })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!me[0]) return c.json({ error: "not_found" }, 404);
+  return c.json({ ...me[0], profileLanguages: parseProfileLanguages(me[0].profileLanguages) });
+}
+
+app.patch("/users/me", async (c) => updateMeProfile(c));
+app.patch("/auth/me", async (c) => updateMeProfile(c));
+app.post("/users/me", async (c) => updateMeProfile(c));
+app.post("/auth/me", async (c) => updateMeProfile(c));
 
 app.get("/users/:handle", async (c) => {
   const viewerId = c.get("userId");

@@ -66,7 +66,7 @@ export default function SearchScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
         <Text style={styles.title}>検索</Text>
-        <Text style={styles.hint}>例: tag:react lang:ts useState</Text>
+        <Text style={styles.hint}>例: tag:react lang:ts date:2026-02-14 useState</Text>
       </View>
 
       <View style={styles.searchRow}>
@@ -74,7 +74,7 @@ export default function SearchScreen() {
           style={styles.input}
           value={query}
           onChangeText={setQuery}
-          placeholder="キーワード / tag: / lang:"
+          placeholder="キーワード / tag: / lang: / date:"
           placeholderTextColor="#778"
           returnKeyType="search"
           onSubmitEditing={() => void runSearch(1, true)}

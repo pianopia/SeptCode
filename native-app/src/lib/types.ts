@@ -11,6 +11,8 @@ export type TimelinePost = {
   authorId: number;
   authorName: string;
   authorHandle: string;
+  authorAvatarUrl: string | null;
+  authorProfileLanguages: string[];
   likeCount: number;
   commentCount: number;
   tags: string[];
@@ -23,6 +25,8 @@ export type AuthUser = {
   handle: string;
   email: string;
   bio?: string;
+  avatarUrl?: string;
+  profileLanguages?: string[];
 };
 
 export type ComposerSuggestions = {

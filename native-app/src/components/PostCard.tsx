@@ -10,7 +10,11 @@ export function PostCard({
   post: TimelinePost;
   onToggleLike: (publicId: string) => Promise<void>;
 }) {
-  const avatarUrl = `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(post.authorHandle)}`;
+  const avatarUrl =
+    post.authorAvatarUrl && post.authorAvatarUrl.trim().length > 0
+      ? post.authorAvatarUrl
+      : `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(post.authorHandle)}`;
+  const profileLangs = Array.isArray(post.authorProfileLanguages) ? post.authorProfileLanguages.slice(0, 3) : [];
 
   return (
     <View style={styles.card}>
@@ -27,6 +31,15 @@ export function PostCard({
         </View>
         <Text style={styles.language}>{post.language}</Text>
       </View>
+      {profileLangs.length > 0 && (
+        <View style={styles.profileLangRow}>
+          {profileLangs.map((lang) => (
+            <Text key={lang} style={styles.profileLang}>
+              {lang}
+            </Text>
+          ))}
+        </View>
+      )}
       <Text style={styles.premise}>{post.premise1}</Text>
       <Text style={styles.premise}>{post.premise2}</Text>
       <CodeRenderer language={post.language} code={post.code} />
@@ -64,6 +77,16 @@ const styles = StyleSheet.create({
   avatar: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, borderColor: "#1f2d5a", backgroundColor: "#0a0f1d" },
   author: { color: "#cde7ff", fontWeight: "700" },
   language: { color: "#87d9ff", fontSize: 12 },
+  profileLangRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
+  profileLang: {
+    color: "#c8d6fb",
+    borderWidth: 1,
+    borderColor: "#334980",
+    borderRadius: 999,
+    fontSize: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2
+  },
   premise: { color: "#d4dcf8", fontSize: 13 },
 
   tagRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },

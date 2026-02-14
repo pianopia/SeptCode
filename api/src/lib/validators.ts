@@ -25,11 +25,18 @@ export const createPostSchema = z
     tags: z.string().max(200).default("")
   })
   .superRefine(({ code, premiseText }, ctx) => {
-    const lines = code.split("\n").length;
+    const codeLines = code.split("\n");
+    const lines = codeLines.length;
     if (lines > 7) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "コードは7行以内にしてください"
+      });
+    }
+    if (codeLines.some((line) => line.length > 200)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "コードの各行は200文字以内にしてください"
       });
     }
 
@@ -55,4 +62,11 @@ export const createPostSchema = z
 
 export const commentSchema = z.object({
   body: z.string().min(1).max(240)
+});
+
+export const updateProfileSchema = z.object({
+  name: z.string().min(1).max(40),
+  bio: z.string().max(300).default(""),
+  profileLanguages: z.string().max(200).default(""),
+  avatarUrl: z.string().max(500).optional().or(z.literal(""))
 });

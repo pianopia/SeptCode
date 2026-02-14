@@ -11,6 +11,8 @@ type PostDetail = {
   authorId: number;
   authorName: string;
   authorHandle: string;
+  authorAvatarUrl: string | null;
+  authorProfileLanguages: string[];
   premise1: string;
   premise2: string;
   code: string;
@@ -20,7 +22,7 @@ type PostDetail = {
   tags: string[];
   likeCount: number;
   likedByMe: boolean;
-  comments: Array<{ id: number; body: string; userName: string; userHandle: string }>;
+  comments: Array<{ id: number; body: string; userId: number; userName: string; userHandle: string }>;
 };
 
 export default function PostDetailScreen() {
@@ -78,6 +80,17 @@ export default function PostDetailScreen() {
     }
   }
 
+  async function deleteComment(commentId: number) {
+    if (!token || !params.id) return;
+    try {
+      setError("");
+      await apiRequest(`/posts/${params.id}/comments/${commentId}`, { method: "DELETE", token });
+      await refreshPost();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "delete_comment_failed");
+    }
+  }
+
   async function toggleLike() {
     if (!token || !params.id) return;
     try {
@@ -131,7 +144,12 @@ export default function PostDetailScreen() {
     }
   }
 
-  const avatarUrl = post ? `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(post.authorHandle)}` : "";
+  const avatarUrl = post
+    ? post.authorAvatarUrl && post.authorAvatarUrl.trim().length > 0
+      ? post.authorAvatarUrl
+      : `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(post.authorHandle)}`
+    : "";
+  const authorProfileLanguages = Array.isArray(post?.authorProfileLanguages) ? post.authorProfileLanguages : [];
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -148,6 +166,15 @@ export default function PostDetailScreen() {
                 </View>
               </Pressable>
             </Link>
+            {authorProfileLanguages.length > 0 && (
+              <View style={styles.profileLangRow}>
+                {authorProfileLanguages.slice(0, 4).map((lang) => (
+                  <Text key={lang} style={styles.profileLang}>
+                    {lang}
+                  </Text>
+                ))}
+              </View>
+            )}
             <Text style={styles.premise}>{post.premise1}</Text>
             <Text style={styles.premise}>{post.premise2}</Text>
             <CodeRenderer language={post.language} code={post.code} />
@@ -190,9 +217,16 @@ export default function PostDetailScreen() {
             {post.comments.map((comment) => (
               <View key={comment.id} style={styles.commentCard}>
                 <Text style={styles.commentBody}>{comment.body}</Text>
-                <Text style={styles.commentMeta}>
-                  {comment.userName} (@{comment.userHandle})
-                </Text>
+                <View style={styles.commentMetaRow}>
+                  <Text style={styles.commentMeta}>
+                    {comment.userName} (@{comment.userHandle})
+                  </Text>
+                  {user?.id === comment.userId && (
+                    <Pressable onPress={() => void deleteComment(comment.id)}>
+                      <Text style={styles.deleteComment}>削除</Text>
+                    </Pressable>
+                  )}
+                </View>
               </View>
             ))}
           </View>
@@ -212,6 +246,16 @@ const styles = StyleSheet.create({
   authorName: { color: "#dce6ff", fontWeight: "700" },
   author: { color: "#87d9ff", fontSize: 12 },
   premise: { color: "#dde6ff" },
+  profileLangRow: { flexDirection: "row", gap: 6, flexWrap: "wrap" },
+  profileLang: {
+    color: "#c8d6fb",
+    borderWidth: 1,
+    borderColor: "#334980",
+    borderRadius: 999,
+    fontSize: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2
+  },
 
   ai: { color: "#cdb6ff", fontSize: 12 },
   actionRow: { flexDirection: "row", gap: 12 },
@@ -227,5 +271,7 @@ const styles = StyleSheet.create({
   dangerButtonText: { color: "#ffb0bb", fontWeight: "700" },
   commentCard: { backgroundColor: "#0e1730", borderRadius: 8, padding: 8, borderWidth: 1, borderColor: "#1f2d5a" },
   commentBody: { color: "#e8edff" },
-  commentMeta: { color: "#8fa4d6", fontSize: 12, marginTop: 4 }
+  commentMetaRow: { marginTop: 4, flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 8 },
+  commentMeta: { color: "#8fa4d6", fontSize: 12 },
+  deleteComment: { color: "#ffb0bb", fontSize: 12, fontWeight: "700" }
 });
