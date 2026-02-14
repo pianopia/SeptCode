@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: "SeptCode",
   description: "7行コードを共有するSNS",
-  keywords: ["SeptCode", "セプトコード", "Sept", "コードだけ", "プログラミング", "プログラミングSNS", "プログラミングコミュニティ", "プログラマー", "プログラミング学習", "セプト", "7行", "コード共有", "コード共有SNS", "SNS"],
+  keywords: ["SeptCode", "セプトコード", "SNSアプリ", "新しいSNS", "Sept", "コードだけ", "プログラミングだけ", "プログラミングSNS", "プログラミングコミュニティ", "プログラマー", "プログラミング学習", "7行", "コード共有", "コード共有SNS"],
   alternates: {
     canonical: "/"
   },
