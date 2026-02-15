@@ -1,4 +1,4 @@
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { desc, eq, inArray, or, sql } from "drizzle-orm";
 import { comments, likes, postTags, posts, tags, users } from "@septcode/db/schema";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -63,6 +63,13 @@ export async function getUsersForAdmin() {
 
 export async function getOfficialPostsForAdmin(limit = 20) {
   const safeLimit = Math.min(Math.max(1, limit), 100);
+  const isOfficialTagPost = sql<boolean>`exists (
+    select 1
+    from ${postTags}
+    inner join ${tags} on ${postTags.tagId} = ${tags.id}
+    where ${postTags.postId} = ${posts.id}
+      and lower(${tags.name}) = 'official'
+  )`;
 
   const rows = await db
     .select({
@@ -84,7 +91,7 @@ export async function getOfficialPostsForAdmin(limit = 20) {
     .innerJoin(users, eq(posts.userId, users.id))
     .leftJoin(likes, eq(likes.postId, posts.id))
     .leftJoin(comments, eq(comments.postId, posts.id))
-    .where(eq(users.handle, env.officialPostHandle))
+    .where(or(eq(users.handle, env.officialPostHandle), isOfficialTagPost))
     .groupBy(posts.id, users.id)
     .orderBy(desc(posts.createdAt))
     .limit(safeLimit);

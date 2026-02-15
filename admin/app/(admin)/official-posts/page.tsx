@@ -88,7 +88,7 @@ export default async function OfficialPostsPage({ searchParams }: { searchParams
       </section>
 
       <section className="rounded-xl border border-line bg-panel p-4">
-        <h2 className="text-lg font-semibold text-ink">最新の公式投稿（シンタックスハイライト表示）</h2>
+        <h2 className="text-lg font-semibold text-ink">公式投稿一覧（シンタックスハイライト表示）</h2>
         {posts.length === 0 ? (
           <p className="mt-3 text-sm text-subInk">まだ公式投稿がありません。上の「今すぐ実行」を押してください。</p>
         ) : (

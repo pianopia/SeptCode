@@ -1,9 +1,9 @@
 "use server";
 
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, ne, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { posts, tags, users } from "@septcode/db/schema";
+import { postTags, posts, tags, users } from "@septcode/db/schema";
 import { clearAdminSession, isAdminAuthenticated, setAdminSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -183,13 +183,25 @@ export async function deleteOfficialPostAction(formData: FormData) {
   });
 
   if (!parsed.success) redirect("/official-posts?delete=invalid_input");
+  const isOfficialTagPost = sql<boolean>`exists (
+    select 1
+    from ${postTags}
+    inner join ${tags} on ${postTags.tagId} = ${tags.id}
+    where ${postTags.postId} = ${posts.id}
+      and lower(${tags.name}) = 'official'
+  )`;
 
   const existing = (
     await db
       .select({ id: posts.id })
       .from(posts)
       .innerJoin(users, eq(posts.userId, users.id))
-      .where(and(eq(posts.publicId, parsed.data.postPublicId), eq(users.handle, env.officialPostHandle)))
+      .where(
+        and(
+          eq(posts.publicId, parsed.data.postPublicId),
+          or(eq(users.handle, env.officialPostHandle), isOfficialTagPost)
+        )
+      )
       .limit(1)
   )[0];
 

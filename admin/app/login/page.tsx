@@ -14,7 +14,6 @@ export default async function LoginPage({ searchParams }: { searchParams: { erro
     <div className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-md rounded-2xl border border-line bg-panel p-6 shadow-sm">
         <h1 className="text-2xl font-bold text-ink">管理画面ログイン</h1>
-        <p className="mt-1 text-sm text-subInk">.env に設定した ID とパスワードでログインしてください。</p>
 
         {searchParams.error && <p className="mt-4 rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">認証に失敗しました。</p>}
 
