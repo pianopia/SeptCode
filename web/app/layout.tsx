@@ -10,8 +10,6 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 const display = Bebas_Neue({ subsets: ["latin"], weight: "400", variable: "--font-display" });
 
 const siteUrl = getSiteUrl();
-const topOgImagePath = "/ogp.png";
-
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: "SeptCode",
@@ -29,21 +27,12 @@ export const metadata: Metadata = {
     url: siteUrl,
     siteName: "SeptCode",
     title: "SeptCode",
-    description: "7行コードを共有するSNS",
-    images: [
-      {
-        url: topOgImagePath,
-        width: 1200,
-        height: 630,
-        alt: "SeptCode - 7行のコード共有SNS"
-      }
-    ]
+    description: "7行コードを共有するSNS"
   },
   twitter: {
     card: "summary",
     title: "SeptCode",
-    description: "7行コードを共有するSNS",
-    images: [topOgImagePath]
+    description: "7行コードを共有するSNS"
   }
 };
 

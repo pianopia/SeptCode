@@ -1,7 +1,8 @@
 import { ImageResponse } from "next/og";
 import { getPostForOg } from "@/lib/og-queries";
+import { highlightCode } from "@/lib/og-highlighter";
 
-export const runtime = "nodejs";
+
 export const alt = "SeptCode 投稿プレビュー";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -196,45 +197,52 @@ export default async function TwitterImage({
                         overflow: "hidden"
                     }}
                 >
-                    {codeLines.map((line, i) => (
-                        <div
-                            key={i}
-                            style={{
-                                display: "flex",
-                                alignItems: "baseline",
-                                height: "40px",
-                                fontSize: "22px",
-                                fontFamily: "monospace",
-                                lineHeight: "40px"
-                            }}
-                        >
-                            {/* Line number */}
-                            <span
+                    {codeLines.map((line, i) => {
+                        const tokens = highlightCode(line, post.language);
+                        return (
+                            <div
+                                key={i}
                                 style={{
-                                    width: "40px",
-                                    textAlign: "right",
-                                    marginRight: "24px",
-                                    color: "#475569",
-                                    fontSize: "16px",
-                                    flexShrink: 0,
                                     display: "flex",
-                                    justifyContent: "flex-end"
+                                    alignItems: "baseline",
+                                    height: "40px",
+                                    fontSize: "22px",
+                                    fontFamily: "monospace",
+                                    lineHeight: "40px"
                                 }}
                             >
-                                {i + 1}
-                            </span>
-                            {/* Code */}
-                            <span
-                                style={{
-                                    color: "#e2e8f0",
-                                    whiteSpace: "pre",
-                                    display: "flex"
-                                }}
-                            >
-                                {line || " "}
-                            </span>
-                        </div>
-                    ))}
+                                {/* Line number */}
+                                <span
+                                    style={{
+                                        width: "40px",
+                                        textAlign: "right",
+                                        marginRight: "24px",
+                                        color: "#475569",
+                                        fontSize: "16px",
+                                        flexShrink: 0,
+                                        display: "flex",
+                                        justifyContent: "flex-end"
+                                    }}
+                                >
+                                    {i + 1}
+                                </span>
+                                {/* Code */}
+                                <span
+                                    style={{
+                                        color: "#e2e8f0",
+                                        whiteSpace: "pre",
+                                        display: "flex"
+                                    }}
+                                >
+                                    {tokens.map((token, j) => (
+                                        <span key={j} style={{ color: token.color || "#e2e8f0" }}>
+                                            {token.text}
+                                        </span>
+                                    ))}
+                                </span>
+                            </div>
+                        )
+                    })}
                 </div>
 
                 {/* Footer */}
