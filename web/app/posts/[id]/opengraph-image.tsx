@@ -169,6 +169,22 @@ export default async function PostOgImage({
                     </div>
                 </div>
 
+                {/* Preamble */}
+                <div
+                    style={{
+                        display: "flex",
+                        fontSize: "24px",
+                        color: "#cbd5e1",
+                        marginBottom: "24px",
+                        lineHeight: 1.5,
+                        maxHeight: "80px",
+                        overflow: "hidden"
+                    }}
+                >
+                    {([post.premise1, post.premise2].filter(Boolean).join(" ") || "").slice(0, 100)}
+                    {([post.premise1, post.premise2].filter(Boolean).join(" ") || "").length > 100 ? "..." : ""}
+                </div>
+
                 {/* Code block */}
                 <div
                     style={{
@@ -178,7 +194,7 @@ export default async function PostOgImage({
                         borderRadius: "16px",
                         border: "1px solid #1e293b",
                         background: "linear-gradient(180deg, #0f172a 0%, #0b1120 100%)",
-                        padding: "28px 32px",
+                        padding: "24px 32px",
                         overflow: "hidden"
                     }}
                 >
@@ -188,10 +204,10 @@ export default async function PostOgImage({
                             style={{
                                 display: "flex",
                                 alignItems: "baseline",
-                                height: "48px",
-                                fontSize: "24px",
+                                height: "40px",
+                                fontSize: "22px",
                                 fontFamily: "monospace",
-                                lineHeight: "48px"
+                                lineHeight: "40px"
                             }}
                         >
                             {/* Line number */}
@@ -201,7 +217,7 @@ export default async function PostOgImage({
                                     textAlign: "right",
                                     marginRight: "24px",
                                     color: "#475569",
-                                    fontSize: "18px",
+                                    fontSize: "16px",
                                     flexShrink: 0,
                                     display: "flex",
                                     justifyContent: "flex-end"
