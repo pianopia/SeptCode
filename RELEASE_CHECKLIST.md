@@ -12,7 +12,8 @@
 - [x] ルート `.dockerignore` を追加
 - [x] `web/.env.example` を追加
 - [x] `api/.env.example` を Cloud Run 向けに更新
-- [x] `AUTH_SECRET` の本番未設定/弱設定を起動時に拒否（api/web）
+- [x] `AUTH_SECRET` の本番未設定/弱設定を起動時に拒否（api/web/admin）
+- [x] `api` / `web` / `admin` の `deploy.sh` が `AUTH_SECRET` 未設定でのデプロイを拒否
 - [x] `native-app/eas.json` を追加
 - [x] `native-app/app.json` に bundle/package 設定を追加
 - [x] API/Web/Native の README にリリース手順を追記

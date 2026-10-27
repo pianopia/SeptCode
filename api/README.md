@@ -33,7 +33,11 @@ bun run dev:api
 
 `.env.example` をコピーして `api/.env` を作成してください。
 
+本番（`NODE_ENV=production`）では `AUTH_SECRET` が未設定、または開発用プレースホルダ `dev-secret-change-me` の場合、API は起動時にエラーで終了します。
+
 ## Cloud Run デプロイ
+
+`api/deploy.sh` を使う場合、デプロイ前に `export AUTH_SECRET=...` が必要です（未設定の場合はスクリプトが終了します）。
 
 ```bash
 gcloud builds submit \

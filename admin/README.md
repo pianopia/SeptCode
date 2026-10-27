@@ -25,6 +25,19 @@ bun run dev:admin
 
 `admin/.env.example` をコピーして `admin/.env` を作成してください。
 
+本番（`NODE_ENV=production`）では `AUTH_SECRET` が未設定、または開発用プレースホルダ `dev-secret-change-me` の場合、アプリは起動時にエラーで終了します。
+
+## Cloud Run デプロイ
+
+`admin/deploy.sh` はビルド・push・デプロイを行います。実行前にシェル環境へ強いランダム値を設定してください（スクリプトは秘密値を生成しません）。
+
+```bash
+export AUTH_SECRET="$(openssl rand -base64 32)"
+./deploy.sh
+```
+
+その他の本番用環境変数（Turso、管理者ログイン、cron など）は Cloud Run のコンソールまたは `gcloud run services update` で別途設定してください。README の `gcloud run deploy` 例でも `AUTH_SECRET` を `--set-env-vars` に含めてください。
+
 ## 実装済み機能
 
 - `.env` 指定のID/パスワードによる管理者ログイン
