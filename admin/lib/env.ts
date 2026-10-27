@@ -34,10 +34,11 @@ if (!env.officialPostCronSecret) {
   console.warn("OFFICIAL_POST_CRON_SECRET is not set. Automated cron posting endpoint will be disabled.");
 }
 
+if (env.nodeEnv === "production" && (!process.env.AUTH_SECRET || env.authSecret === "dev-secret-change-me")) {
+  throw new Error("AUTH_SECRET must be set to a strong random value in production.");
+}
+
 if (env.nodeEnv === "production") {
-  if (!process.env.AUTH_SECRET || env.authSecret === "dev-secret-change-me") {
-    console.warn("AUTH_SECRET should be set to a strong random value in production.");
-  }
   if (!env.adminLoginId || !env.adminLoginPassword) {
     console.warn("ADMIN_LOGIN_ID and ADMIN_LOGIN_PASSWORD should be set in production.");
   }

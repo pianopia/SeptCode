@@ -13,6 +13,7 @@ Bun workspaces を使った構成です。
 - `RELEASE_CHECKLIST.md`: 事前チェックと残タスク
 - `api/README.md`: API の Cloud Run デプロイ手順
 - `web/README.md`: Web の Cloud Run デプロイ手順
+- `admin/README.md`: 管理画面のデプロイ・環境変数
 - `native-app/README.md`: Expo 開発手順
 
 ## セットアップ
@@ -36,7 +37,7 @@ API 起動時は `.env` などに以下を設定してください:
 
 - `TURSO_DATABASE_URL`
 - `TURSO_AUTH_TOKEN` (必要な場合)
-- `AUTH_SECRET`
+- `AUTH_SECRET`（本番: api/web/admin は未設定時に起動拒否）
 - `CORS_ORIGIN` (本番では `*` を避ける)
 
 ## DB操作 (web)

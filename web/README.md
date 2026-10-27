@@ -12,7 +12,7 @@ bun run dev:web
 
 - `TURSO_DATABASE_URL`
 - `TURSO_AUTH_TOKEN` (必要な場合)
-- `AUTH_SECRET`
+- `AUTH_SECRET`（本番では未設定・開発用デフォルト値のとき起動時にエラーで停止）
 - `GCS_BUCKET_NAME` (プロフィール画像保存先の Cloud Storage バケット)
 - `NEXT_PUBLIC_SITE_URL` (例: `https://septcode.example.com`)
 - `PORT` (Cloud Run では自動注入)

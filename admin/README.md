@@ -12,7 +12,7 @@ bun run dev:admin
 
 - `TURSO_DATABASE_URL`
 - `TURSO_AUTH_TOKEN` (必要な場合)
-- `AUTH_SECRET`
+- `AUTH_SECRET`（本番では未設定・開発用デフォルト値のとき起動時にエラーで停止）
 - `ADMIN_LOGIN_ID`
 - `ADMIN_LOGIN_PASSWORD`
 - `OPENAI_API_KEY` (任意: 未設定時はフォールバックスニペットを投稿)
@@ -23,7 +23,25 @@ bun run dev:admin
 - `OFFICIAL_POST_INTERVAL_MINUTES`
 - `WEB_APP_URL` (任意: 公式投稿プレビュー埋め込み先。既定 `http://localhost:3000`)
 
-`admin/.env.example` をコピーして `admin/.env` を作成してください。
+`admin/.env.example` をコピーして `admin/.env` を作成してください。例の値はプレースホルダーです。本番では `replace-with-strong-random-secret` などをそのまま使わず、十分長いランダム文字列に置き換えてください。
+
+## Cloud Run デプロイ
+
+```bash
+gcloud builds submit \
+  --tag asia-east1-docker.pkg.dev/YOUR_GCP_PROJECT/septcode/septcode-admin:latest \
+  --file admin/Dockerfile \
+  .
+
+gcloud run deploy septcode-admin \
+  --image asia-east1-docker.pkg.dev/YOUR_GCP_PROJECT/septcode/septcode-admin:latest \
+  --region asia-east1 \
+  --no-allow-unauthenticated \
+  --set-env-vars AUTH_SECRET=xxxx,TURSO_DATABASE_URL=xxxx,ADMIN_LOGIN_ID=xxxx,ADMIN_LOGIN_PASSWORD=xxxx,OFFICIAL_POST_CRON_SECRET=xxxx,WEB_APP_URL=https://your-web-domain.com \
+  --set-secrets TURSO_AUTH_TOKEN=YOUR_TURSO_TOKEN_SECRET:latest
+```
+
+`AUTH_SECRET` を Cloud Run に設定しない、または開発用フォールバックと同じ値にした場合、コンテナは起動時に失敗します（api/web と同様の fail-closed）。
 
 ## 実装済み機能
 
